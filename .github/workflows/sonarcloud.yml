@@ -114,7 +114,7 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.sources=Backend/src/main/java,Frontend/src
-            -Dsonar.java.binaries=Backend/target/classes
-            -Dsonar.coverage.jacoco.xmlReportPaths=Backend/target/site/jacoco/jacoco.xml
-            -Dsonar.exclusions=Backend/target/**,Frontend/dist/**,Frontend/node_modules/**,**/*.test.*,**/*.spec.*
+            -Dsonar.java.binaries=./classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=./site/jacoco/jacoco.xml
+            -Dsonar.exclusions=./**,Frontend/dist/**,Frontend/node_modules/**,**/*.test.*,**/*.spec.*
             -Dsonar.qualitygate.wait=true
