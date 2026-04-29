@@ -17,7 +17,7 @@ function App() {
     [response],
   )
 
-  const fetchData = async () => {
+  const fetchDatas = async () => {
     setLoading(true)
     setError('')
 
