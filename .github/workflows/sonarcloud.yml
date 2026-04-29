@@ -67,6 +67,15 @@ jobs:
         working-directory: Backend
         run: mvn -B clean verify
 
+      - name: Upload backend SonarCloud artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-sonar-artifacts
+          path: |
+            Backend/target/classes
+            Backend/target/site/jacoco/jacoco.xml
+          if-no-files-found: error
+
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
@@ -79,6 +88,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download backend SonarCloud artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-sonar-artifacts
+          path: .
 
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@v6
