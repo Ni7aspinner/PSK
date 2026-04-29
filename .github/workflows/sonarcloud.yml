@@ -1,74 +1,29 @@
 name: SonarCloud
 
 on:
-  workflow_run:
-    workflows:
-      - Front-end Build
-      - Back-end Build
-    types:
-      - completed
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
-  sonarcloud:
-    name: SonarCloud
+  frontend-build:
+    name: Front-end Build
     runs-on: ubuntu-latest
 
     steps:
-      - name: Wait for both build workflows to succeed
-        id: gate
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const headSha = context.payload.workflow_run.head_sha;
-            const workflows = ['Front-end Build', 'Back-end Build'];
-
-            async function getConclusion(workflowName) {
-              const { data: workflowList } = await github.rest.actions.listRepoWorkflows({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-              });
-
-              const workflow = workflowList.workflows.find((item) => item.name === workflowName);
-
-              if (!workflow) {
-                core.setFailed(`Workflow not found: ${workflowName}`);
-                return 'missing';
-              }
-
-              const { data: runs } = await github.rest.actions.listWorkflowRuns({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: workflow.id,
-                head_sha: headSha,
-                per_page: 20,
-              });
-
-              const matchingRun = runs.workflow_runs.find((run) => run.head_sha === headSha);
-              return matchingRun ? matchingRun.conclusion : null;
-            }
-
-            const conclusions = await Promise.all(workflows.map(getConclusion));
-            const ready = conclusions.every((conclusion) => conclusion === 'success');
-
-            core.setOutput('ready', ready ? 'true' : 'false');
-            core.info(`Build gate: ${JSON.stringify(conclusions)} -> ready=${ready}`);
-
-      - name: Stop early until both builds are complete
-        if: steps.gate.outputs.ready != 'true'
-        run: echo "Build workflows are not both successful yet; skipping SonarCloud scan."
-
       - name: Check out repository
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Node.js
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -76,22 +31,28 @@ jobs:
           cache-dependency-path: Frontend/package-lock.json
 
       - name: Install frontend dependencies
-        if: steps.gate.outputs.ready == 'true'
         working-directory: Frontend
         run: npm ci
 
       - name: Lint frontend
-        if: steps.gate.outputs.ready == 'true'
         working-directory: Frontend
         run: npm run lint -- --max-warnings=0
 
       - name: Build frontend
-        if: steps.gate.outputs.ready == 'true'
         working-directory: Frontend
         run: npm run build
 
+  backend-build:
+    name: Back-end Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Set up Java 21
-        if: steps.gate.outputs.ready == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -99,27 +60,61 @@ jobs:
           cache: maven
 
       - name: Check backend formatting
-        if: steps.gate.outputs.ready == 'true'
         working-directory: Backend
         run: mvn -B spotless:check
 
       - name: Build backend
-        if: steps.gate.outputs.ready == 'true'
         working-directory: Backend
         run: mvn -B clean verify
 
+      - name: Upload backend SonarCloud artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-sonar-artifacts
+          path: |
+            Backend/target/classes
+            Backend/target/site/jacoco/jacoco.xml
+          if-no-files-found: error
+
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs:
+      - frontend-build
+      - backend-build
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download backend SonarCloud artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-sonar-artifacts
+          path: .
+
+      - name: Debug downloaded artifacts
+        run: |
+          echo "=== ROOT ==="
+          ls -la
+          echo "=== BACKEND TARGET ==="
+          ls -la Backend/target || true
+          echo "=== CLASSES ==="
+          ls -la Backend/target/classes || true
+
       - name: SonarCloud scan
-        if: steps.gate.outputs.ready == 'true'
         uses: SonarSource/sonarqube-scan-action@v6
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          args: >
+          args: 
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.sources=Backend/src/main/java,Frontend/src
-            -Dsonar.java.binaries=Backend/target/classes
-            -Dsonar.coverage.jacoco.xmlReportPaths=Backend/target/site/jacoco/jacoco.xml
-            -Dsonar.exclusions=Backend/target/**,Frontend/dist/**,Frontend/node_modules/**,**/*.test.*,**/*.spec.*
+            -Dsonar.java.binaries=./classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=./site/jacoco/jacoco.xml
+            -Dsonar.exclusions=./**,Frontend/dist/**,Frontend/node_modules/**,**/*.test.*,**/*.spec.*
             -Dsonar.qualitygate.wait=true
