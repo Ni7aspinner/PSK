@@ -10,12 +10,11 @@ import lombok.Setter;
 @Table(name = "TEMP_DATA")
 public class Data {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ID")
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Column(name = "ID")
+  private Long id;
 
-    @Column(name = "NAME", nullable = false)
-    private String name;
-
+  @Column(name = "NAME", nullable = false)
+  private String name;
 }

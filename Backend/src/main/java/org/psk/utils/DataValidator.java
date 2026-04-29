@@ -8,5 +8,4 @@ public class DataValidator {
     String name = data.getName();
     return name != null && !name.trim().isEmpty();
   }
-
 }

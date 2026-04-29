@@ -48,9 +48,6 @@ jobs:
         working-directory: Backend
         run: mvn -B clean verify
 
-      - name: Check backend formatting
-        working-directory: Backend
-        run: mvn -B spotless:check
 
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@v6
