@@ -95,6 +95,15 @@ jobs:
           name: backend-sonar-artifacts
           path: .
 
+        - name: Debug downloaded artifacts
+          run: |
+            echo "=== ROOT ==="
+            ls -la
+            echo "=== BACKEND TARGET ==="
+            ls -la Backend/target || true
+            echo "=== CLASSES ==="
+            ls -la Backend/target/classes || true
+
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@v6
         env:
