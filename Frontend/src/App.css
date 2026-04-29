@@ -1,0 +1,133 @@
+:root {
+  --ink-900: #1f2937;
+  --ink-700: #4b5563;
+  --surface-1: #ffffff;
+  --surface-2: #f8fafc;
+  --line-soft: #e5e7eb;
+  --line-strong: #d1d5db;
+  --brand-500: #2563eb;
+  --danger-600: #b91c1c;
+}
+
+.app-shell {
+  width: min(1050px, calc(100% - 2rem));
+  margin: 2rem auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.hero,
+.panel,
+.result-box,
+.table-wrap {
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+}
+
+.hero {
+  padding: 1.5rem;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-500);
+}
+
+.hero p {
+  margin: 0.4rem 0 0;
+  color: var(--ink-700);
+}
+
+.panel {
+  padding: 1rem;
+}
+
+.result-box {
+  min-height: 300px;
+  padding: 1rem;
+  background: var(--surface-2);
+}
+
+.result-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  color: var(--ink-700);
+}
+
+.fetch-button {
+  border: 1px solid var(--line-strong);
+  background: #ffffff;
+  color: var(--ink-900);
+  border-radius: 5px;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.fetch-button:hover {
+  background: var(--surface-1);
+  border-color: var(--brand-500);
+}
+
+.fetch-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.table-wrap {
+  overflow: auto;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  border-bottom: 1px solid #edf0f3;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+  color: var(--ink-900);
+  font-size: 0.9rem;
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f3f4f6;
+  font-weight: 700;
+}
+
+.data-table tr:nth-child(even) td {
+  background: #f9fafb;
+}
+
+.error-text {
+  color: var(--danger-600);
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 0.55rem 0.7rem;
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    width: min(1050px, 100% - 1rem);
+    margin: 1rem auto;
+  }
+
+  .hero,
+  .panel,
+  .result-box {
+    border-radius: 0px;
+  }
+}
