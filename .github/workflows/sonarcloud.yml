@@ -1,12 +1,7 @@
 name: SonarCloud
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,11 +9,57 @@ permissions:
 jobs:
   frontend-build:
     name: Front-end Build
-    uses: ./.github/workflows/FEBuild.yml
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: Frontend
+        run: npm run lint -- --max-warnings=0
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
 
   backend-build:
     name: Back-end Build
-    uses: ./.github/workflows/BEBuild.yml
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Check backend formatting
+        working-directory: Backend
+        run: mvn -B spotless:check
+
+      - name: Build backend
+        working-directory: Backend
+        run: mvn -B clean verify
 
   sonarcloud:
     name: SonarCloud
@@ -32,12 +73,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Download backend SonarCloud artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-sonar-artifacts
-          path: .
 
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@v6
