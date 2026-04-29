@@ -119,6 +119,7 @@
   padding: 0.55rem 0.7rem;
 }
 
+/*Adjusts automatically*/
 @media (max-width: 768px) {
   .app-shell {
     width: min(1050px, 100% - 1rem);
