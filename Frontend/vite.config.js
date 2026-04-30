@@ -38,6 +38,22 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_BACKEND_URL': JSON.stringify(backendUrl),
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./src/setupTests.js'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov'],
+      reportsDirectory: './coverage',
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80,
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': {

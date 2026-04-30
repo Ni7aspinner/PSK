@@ -38,9 +38,21 @@ jobs:
         working-directory: Frontend
         run: npm run lint -- --max-warnings=0
 
+      - name: Test frontend with coverage
+        working-directory: Frontend
+        run: npm run test:coverage
+
       - name: Build frontend
         working-directory: Frontend
         run: npm run build
+
+      - name: Upload frontend SonarCloud artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-sonar-artifacts
+          path: |
+            Frontend/coverage/lcov.info
+          if-no-files-found: error
 
   backend-build:
     name: Back-end Build
@@ -95,6 +107,12 @@ jobs:
           name: backend-sonar-artifacts
           path: .
 
+      - name: Download frontend SonarCloud artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-sonar-artifacts
+          path: .
+
       - name: Debug downloaded artifacts
         run: |
           echo "=== ROOT ==="
@@ -116,5 +134,6 @@ jobs:
             -Dsonar.sources=Backend/src/main/java,Frontend/src
             -Dsonar.java.binaries=./classes
             -Dsonar.coverage.jacoco.xmlReportPaths=./site/jacoco/jacoco.xml
+            -Dsonar.javascript.lcov.reportPaths=Frontend/coverage/lcov.info
             -Dsonar.exclusions=./**,Frontend/dist/**,Frontend/node_modules/**,**/*.test.*,**/*.spec.*
             -Dsonar.qualitygate.wait=true
