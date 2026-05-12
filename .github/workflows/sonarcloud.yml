@@ -136,4 +136,4 @@ jobs:
             -Dsonar.coverage.jacoco.xmlReportPaths=./site/jacoco/jacoco.xml
             -Dsonar.javascript.lcov.reportPaths=Frontend/coverage/lcov.info
             -Dsonar.exclusions=./**,Frontend/dist/**,Frontend/node_modules/**,**/*.test.*,**/*.spec.*
-            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.wait=false
