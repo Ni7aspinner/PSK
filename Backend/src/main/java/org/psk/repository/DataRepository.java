@@ -5,9 +5,9 @@ import java.util.Optional;
 import org.psk.entity.Data;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface DataRepository extends JpaRepository<Data, String> {
+public interface DataRepository extends JpaRepository<Data, Long> {
 
   List<Data> findAll();
 
-  Optional<Data> findById(String id);
+  Optional<Data> findById(Long id);
 }

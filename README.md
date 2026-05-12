@@ -41,6 +41,55 @@ mvn install
 - Make sure you have Node.js and npm installed for the frontend.
 - Make sure you have Java 21 and Maven installed for the backend.
 
+## Local development
+
+### Requirements
+
+- Docker (for the database)
+- Java 21
+- Node.js and npm
+
+### Database
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d
+```
+
+Stop PostgreSQL:
+
+```bash
+docker compose down
+```
+
+Reset PostgreSQL (wipe all data):
+
+```bash
+docker compose down -v && docker compose up -d
+```
+
+### Run Backend
+
+```bash
+cd Backend
+./mvnw spring-boot:run
+```
+
+Windows:
+
+```cmd
+cd Backend
+mvnw.cmd spring-boot:run
+```
+
+### Run Frontend
+
+```bash
+cd Frontend
+npm run dev
+```
+
 ## SonarCloud Checks
 
 -PR now will be checked by SonarCloud and will get blocked until all comments are resolved.
