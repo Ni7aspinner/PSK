@@ -5,6 +5,11 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.psk.contract.exception.ContractNotFoundException;
+import org.psk.contract.exception.ContractNumberDuplicateException;
+import org.psk.contract.exception.InvalidContractDateRangeException;
+import org.psk.service.exception.ServiceContractSupplierMismatchException;
+import org.psk.service.exception.ServiceNotFoundException;
 import org.psk.supplier.exception.DuplicateSupplierException;
 import org.psk.supplier.exception.SupplierNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -17,16 +22,29 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-  @ExceptionHandler(SupplierNotFoundException.class)
+  @ExceptionHandler({
+    SupplierNotFoundException.class,
+    ServiceNotFoundException.class,
+    ContractNotFoundException.class
+  })
   public ResponseEntity<Map<String, Object>> handleNotFound(
-      SupplierNotFoundException ex, HttpServletRequest request) {
+      RuntimeException ex, HttpServletRequest request) {
     return error(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
   }
 
-  @ExceptionHandler(DuplicateSupplierException.class)
+  @ExceptionHandler({DuplicateSupplierException.class, ContractNumberDuplicateException.class})
   public ResponseEntity<Map<String, Object>> handleConflict(
-      DuplicateSupplierException ex, HttpServletRequest request) {
+      RuntimeException ex, HttpServletRequest request) {
     return error(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+  }
+
+  @ExceptionHandler({
+    InvalidContractDateRangeException.class,
+    ServiceContractSupplierMismatchException.class
+  })
+  public ResponseEntity<Map<String, Object>> handleBusinessRuleViolation(
+      RuntimeException ex, HttpServletRequest request) {
+    return error(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

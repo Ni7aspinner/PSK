@@ -1,0 +1,8 @@
+package org.psk.contract.exception;
+
+public class InvalidContractDateRangeException extends RuntimeException {
+
+  public InvalidContractDateRangeException(String message) {
+    super(message);
+  }
+}

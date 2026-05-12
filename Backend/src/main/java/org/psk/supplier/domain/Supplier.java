@@ -5,11 +5,15 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.psk.contract.domain.Contract;
+import org.psk.service.domain.Service;
 
 @Entity
 @Table(name = "supplier")
@@ -46,6 +50,12 @@ public class Supplier {
   @Version
   @Column(name = "opt_lock_version", nullable = false)
   private Long version;
+
+  @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
+  private Set<Service> services = new HashSet<>();
+
+  @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
+  private Set<Contract> contracts = new HashSet<>();
 
   @PrePersist
   protected void onCreate() {
