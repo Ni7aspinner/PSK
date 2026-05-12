@@ -6,7 +6,9 @@
       "PowerShell(Get-Command mvn -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command mvn.cmd -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Command mvn.exe -ErrorAction SilentlyContinue)",
-      "PowerShell(& \"C:\\\\Users\\\\stepo\\\\.m2\\\\wrapper\\\\dists\\\\apache-maven-3.9.9-bin\\\\4nf9hui3q3djbarqar9g711ggc\\\\apache-maven-3.9.9\\\\bin\\\\mvn.cmd\" -f \"d:\\\\Studijos\\\\PSK\\\\Backend\\\\pom.xml\" clean compile -q 2>&1)"
+      "PowerShell(& \"C:\\\\Users\\\\stepo\\\\.m2\\\\wrapper\\\\dists\\\\apache-maven-3.9.9-bin\\\\4nf9hui3q3djbarqar9g711ggc\\\\apache-maven-3.9.9\\\\bin\\\\mvn.cmd\" -f \"d:\\\\Studijos\\\\PSK\\\\Backend\\\\pom.xml\" clean compile -q 2>&1)",
+      "Bash(\"C:\\\\Users\\\\stepo\\\\.m2\\\\wrapper\\\\dists\\\\apache-maven-3.9.9-bin\\\\4nf9hui3q3djbarqar9g711ggc\\\\apache-maven-3.9.9\\\\bin\\\\mvn.cmd\" spotless:apply -q)",
+      "Bash(\"C:\\\\Users\\\\stepo\\\\.m2\\\\wrapper\\\\dists\\\\apache-maven-3.9.9-bin\\\\4nf9hui3q3djbarqar9g711ggc\\\\apache-maven-3.9.9\\\\bin\\\\mvn.cmd\" clean *)"
     ]
   }
 }
