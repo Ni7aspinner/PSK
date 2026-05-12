@@ -10,6 +10,7 @@ import org.psk.contract.domain.ContractStatus;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.CreateContractRequest;
 import org.psk.contract.service.ContractService;
+import org.psk.security.jwt.JwtService;
 import org.psk.service.dto.CreateServiceRequest;
 import org.psk.service.dto.ServiceDto;
 import org.psk.service.service.ServiceManagementService;
@@ -31,6 +32,7 @@ class SupplierContractServiceIntegrationTest {
   @Autowired private SupplierService supplierService;
   @Autowired private ContractService contractService;
   @Autowired private ServiceManagementService serviceManagementService;
+  @Autowired private JwtService jwtService;
 
   @Test
   void supplierServicesEndpoint_returnsServiceAttachedToContract() throws Exception {
@@ -38,9 +40,12 @@ class SupplierContractServiceIntegrationTest {
     ContractDto contract = contractService.create(contractRequest(supplier.getId()));
     ServiceDto service =
         serviceManagementService.create(serviceRequest(supplier.getId(), contract.getId()));
+    String token = jwtService.generateToken("integration-user", "USER");
 
     mockMvc
-        .perform(get("/api/suppliers/{id}/services", supplier.getId()))
+        .perform(
+            get("/api/suppliers/{id}/services", supplier.getId())
+                .header("Authorization", "Bearer " + token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(service.getId()))
         .andExpect(jsonPath("$[0].name").value("Managed hosting"))

@@ -24,20 +24,24 @@ import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
 import org.psk.contract.service.ContractService;
+import org.psk.security.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(ContractController.class)
 @Import(GlobalExceptionHandler.class)
+@WithMockUser(roles = "USER")
 class ContractControllerTest {
 
   @Autowired private MockMvc mockMvc;
 
   @MockitoBean private ContractService contractService;
+  @MockitoBean private JwtService jwtService;
 
   @Test
   void getAll_returnsList() throws Exception {

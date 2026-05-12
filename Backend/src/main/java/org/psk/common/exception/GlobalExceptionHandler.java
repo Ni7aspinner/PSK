@@ -8,12 +8,16 @@ import java.util.Map;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
+import org.psk.security.exception.UsernameAlreadyExistsException;
 import org.psk.service.exception.ServiceContractSupplierMismatchException;
 import org.psk.service.exception.ServiceNotFoundException;
 import org.psk.supplier.exception.DuplicateSupplierException;
 import org.psk.supplier.exception.SupplierNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,7 +36,11 @@ public class GlobalExceptionHandler {
     return error(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
   }
 
-  @ExceptionHandler({DuplicateSupplierException.class, ContractNumberDuplicateException.class})
+  @ExceptionHandler({
+    DuplicateSupplierException.class,
+    ContractNumberDuplicateException.class,
+    UsernameAlreadyExistsException.class
+  })
   public ResponseEntity<Map<String, Object>> handleConflict(
       RuntimeException ex, HttpServletRequest request) {
     return error(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
@@ -45,6 +53,24 @@ public class GlobalExceptionHandler {
   public ResponseEntity<Map<String, Object>> handleBusinessRuleViolation(
       RuntimeException ex, HttpServletRequest request) {
     return error(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+  }
+
+  @ExceptionHandler(BadCredentialsException.class)
+  public ResponseEntity<Map<String, String>> handleBadCredentials() {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(Map.of("error", "Invalid credentials"));
+  }
+
+  @ExceptionHandler(AuthenticationException.class)
+  public ResponseEntity<Map<String, Object>> handleAuthentication(
+      AuthenticationException ex, HttpServletRequest request) {
+    return error(HttpStatus.UNAUTHORIZED, ex.getMessage(), request.getRequestURI());
+  }
+
+  @ExceptionHandler(AccessDeniedException.class)
+  public ResponseEntity<Map<String, Object>> handleAccessDenied(
+      AccessDeniedException ex, HttpServletRequest request) {
+    return error(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
