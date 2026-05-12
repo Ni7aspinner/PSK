@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: psk_db
+      POSTGRES_USER: psk_user
+      POSTGRES_PASSWORD: psk_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - psk_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U psk_user -d psk_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  psk_postgres_data:
