@@ -1,0 +1,69 @@
+package org.psk.common.exception;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.psk.supplier.exception.DuplicateSupplierException;
+import org.psk.supplier.exception.SupplierNotFoundException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+  @ExceptionHandler(SupplierNotFoundException.class)
+  public ResponseEntity<Map<String, Object>> handleNotFound(
+      SupplierNotFoundException ex, HttpServletRequest request) {
+    return error(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+  }
+
+  @ExceptionHandler(DuplicateSupplierException.class)
+  public ResponseEntity<Map<String, Object>> handleConflict(
+      DuplicateSupplierException ex, HttpServletRequest request) {
+    return error(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<Map<String, Object>> handleValidation(
+      MethodArgumentNotValidException ex, HttpServletRequest request) {
+    List<Map<String, String>> fieldErrors =
+        ex.getBindingResult().getFieldErrors().stream()
+            .map(fe -> Map.of("field", fe.getField(), "message", message(fe)))
+            .toList();
+    Map<String, Object> body =
+        body(HttpStatus.BAD_REQUEST, "Validation failed", request.getRequestURI());
+    body.put("fieldErrors", fieldErrors);
+    return ResponseEntity.badRequest().body(body);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<Map<String, Object>> handleGeneral(
+      Exception ex, HttpServletRequest request) {
+    return error(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request.getRequestURI());
+  }
+
+  private ResponseEntity<Map<String, Object>> error(
+      HttpStatus status, String message, String path) {
+    return ResponseEntity.status(status).body(body(status, message, path));
+  }
+
+  private Map<String, Object> body(HttpStatus status, String message, String path) {
+    Map<String, Object> m = new LinkedHashMap<>();
+    m.put("timestamp", Instant.now().toString());
+    m.put("status", status.value());
+    m.put("error", status.getReasonPhrase());
+    m.put("message", message);
+    m.put("path", path);
+    return m;
+  }
+
+  private String message(FieldError fe) {
+    return fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value";
+  }
+}
