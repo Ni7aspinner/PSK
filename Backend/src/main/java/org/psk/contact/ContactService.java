@@ -1,15 +1,19 @@
-package org.psk.contact;
+package org.psk.contact.service;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.psk.common.conflict.OptimisticLockConflictException;
+import org.psk.contact.domain.Contact;
 import org.psk.contact.dto.ContactDto;
 import org.psk.contact.dto.ContactMapper;
 import org.psk.contact.dto.CreateContactRequest;
 import org.psk.contact.dto.UpdateContactRequest;
 import org.psk.contact.exception.ContactNotFoundException;
-import org.psk.supplier.Supplier;
-import org.psk.supplier.SupplierRepository;
+import org.psk.contact.repository.ContactRepository;
+import org.psk.supplier.domain.Supplier;
 import org.psk.supplier.exception.SupplierNotFoundException;
+import org.psk.supplier.repository.SupplierRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
@@ -17,23 +21,26 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ContactService {
 
-  private static final String CONTACT_NOT_FOUND_WITH_ID = "Contact not found with id: ";
-
   private final ContactRepository contactRepository;
   private final SupplierRepository supplierRepository;
   private final ContactMapper contactMapper;
 
   public List<ContactDto> findAll() {
-    return toDtos(contactRepository.findAll());
+    return contactRepository.findAll().stream().map(contactMapper::toDto).toList();
   }
 
   public ContactDto findById(Long id) {
-    return contactMapper.toDto(requireContact(id));
+    return contactRepository
+        .findById(id)
+        .map(contactMapper::toDto)
+        .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id));
   }
 
   public List<ContactDto> findBySupplierId(Long supplierId) {
     ensureSupplierExists(supplierId);
-    return toDtos(contactRepository.findBySupplierId(supplierId));
+    return contactRepository.findBySupplierId(supplierId).stream()
+        .map(contactMapper::toDto)
+        .toList();
   }
 
   @Transactional
@@ -48,7 +55,25 @@ public class ContactService {
 
   @Transactional
   public ContactDto update(Long id, UpdateContactRequest req) {
-    Contact existing = requireContact(id);
+    Contact existing =
+        contactRepository
+            .findById(id)
+            .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id));
+    ensureVersionMatches("Contact", id, existing.getVersion(), req.getVersion(), req);
+    Supplier supplier = findSupplier(req.getSupplierId());
+    if (req.isPrimary()) {
+      clearPrimaryForSupplier(supplier.getId(), existing.getId());
+    }
+    contactMapper.updateEntity(existing, req, supplier);
+    return contactMapper.toDto(contactRepository.save(existing));
+  }
+
+  @Transactional
+  public ContactDto forceOverwrite(Long id, UpdateContactRequest req) {
+    Contact existing =
+        contactRepository
+            .findById(id)
+            .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id));
     Supplier supplier = findSupplier(req.getSupplierId());
     if (req.isPrimary()) {
       clearPrimaryForSupplier(supplier.getId(), existing.getId());
@@ -59,12 +84,19 @@ public class ContactService {
 
   @Transactional
   public void delete(Long id) {
-    contactRepository.delete(requireContact(id));
+    contactRepository.delete(
+        contactRepository
+            .findById(id)
+            .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id)));
   }
 
   @Transactional
   public ContactDto setPrimary(Long contactId) {
-    Contact contact = requireContact(contactId);
+    Contact contact =
+        contactRepository
+            .findById(contactId)
+            .orElseThrow(
+                () -> new ContactNotFoundException("Contact not found with id: " + contactId));
     Long supplierId = contact.getSupplier().getId();
     clearPrimaryForSupplier(supplierId, contact.getId());
     contact.setPrimary(true);
@@ -76,16 +108,6 @@ public class ContactService {
         .findById(supplierId)
         .orElseThrow(
             () -> new SupplierNotFoundException("Supplier not found with id: " + supplierId));
-  }
-
-  private Contact requireContact(Long id) {
-    return contactRepository
-        .findById(id)
-        .orElseThrow(() -> new ContactNotFoundException(CONTACT_NOT_FOUND_WITH_ID + id));
-  }
-
-  private List<ContactDto> toDtos(List<Contact> contacts) {
-    return contacts.stream().map(contactMapper::toDto).toList();
   }
 
   private void ensureSupplierExists(Long supplierId) {
@@ -103,6 +125,18 @@ public class ContactService {
     primaryContacts.forEach(contact -> contact.setPrimary(false));
     if (!primaryContacts.isEmpty()) {
       contactRepository.saveAllAndFlush(primaryContacts);
+    }
+  }
+
+  private void ensureVersionMatches(
+      String entityType, Long entityId, Long currentVersion, Long submittedVersion, Object req) {
+    if (!Objects.equals(currentVersion, submittedVersion)) {
+      throw new OptimisticLockConflictException(
+          entityType,
+          entityId,
+          submittedVersion,
+          req,
+          entityType + " was modified by another user");
     }
   }
 }

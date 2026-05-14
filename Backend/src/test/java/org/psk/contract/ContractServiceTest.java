@@ -1,4 +1,4 @@
-package org.psk.contract;
+package org.psk.contract.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,6 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.psk.common.conflict.OptimisticLockConflictException;
+import org.psk.contract.domain.Contract;
+import org.psk.contract.domain.ContractStatus;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.ContractMapper;
 import org.psk.contract.dto.CreateContractRequest;
@@ -21,10 +24,11 @@ import org.psk.contract.dto.UpdateContractRequest;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
-import org.psk.service.Service;
-import org.psk.service.ServiceRepository;
-import org.psk.supplier.Supplier;
-import org.psk.supplier.SupplierRepository;
+import org.psk.contract.repository.ContractRepository;
+import org.psk.service.domain.Service;
+import org.psk.service.repository.ServiceRepository;
+import org.psk.supplier.domain.Supplier;
+import org.psk.supplier.repository.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ContractServiceTest {
@@ -95,6 +99,34 @@ class ContractServiceTest {
     ContractDto result = contractService.update(5L, req);
 
     assertThat(result.getContractNumber()).isEqualTo("C-001");
+    assertThat(result.getTitle()).isEqualTo("Updated contract");
+  }
+
+  @Test
+  void update_staleVersion_throwsOptimisticLockConflictException() {
+    Contract existing = contract(5L, supplier(1L), "C-001");
+    existing.setVersion(2L);
+    UpdateContractRequest req = updateRequest();
+    req.setVersion(1L);
+    when(contractRepository.findById(5L)).thenReturn(Optional.of(existing));
+
+    assertThatThrownBy(() -> contractService.update(5L, req))
+        .isInstanceOf(OptimisticLockConflictException.class)
+        .hasMessageContaining("Contract was modified by another user");
+  }
+
+  @Test
+  void forceOverwrite_staleVersion_updatesWithoutVersionCheck() {
+    Contract existing = contract(5L, supplier(1L), "C-001");
+    existing.setVersion(2L);
+    UpdateContractRequest req = updateRequest();
+    req.setVersion(0L);
+    req.setForceOverwrite(true);
+    when(contractRepository.findById(5L)).thenReturn(Optional.of(existing));
+    when(contractRepository.save(existing)).thenReturn(existing);
+
+    ContractDto result = contractService.forceOverwrite(5L, req);
+
     assertThat(result.getTitle()).isEqualTo("Updated contract");
   }
 
@@ -172,6 +204,7 @@ class ContractServiceTest {
     contract.setEndDate(LocalDate.of(2026, 12, 31));
     contract.setStatus(ContractStatus.ACTIVE);
     contract.setSupplier(supplier);
+    contract.setVersion(0L);
     return contract;
   }
 }

@@ -1,4 +1,4 @@
-package org.psk.contact;
+package org.psk.contact.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -13,14 +13,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.psk.common.conflict.OptimisticLockConflictException;
+import org.psk.contact.domain.Contact;
 import org.psk.contact.dto.ContactDto;
 import org.psk.contact.dto.ContactMapper;
 import org.psk.contact.dto.CreateContactRequest;
 import org.psk.contact.dto.UpdateContactRequest;
 import org.psk.contact.exception.ContactNotFoundException;
-import org.psk.supplier.Supplier;
-import org.psk.supplier.SupplierRepository;
+import org.psk.contact.repository.ContactRepository;
+import org.psk.supplier.domain.Supplier;
 import org.psk.supplier.exception.SupplierNotFoundException;
+import org.psk.supplier.repository.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ContactServiceTest {
@@ -159,6 +162,37 @@ class ContactServiceTest {
   }
 
   @Test
+  void update_staleVersion_throwsOptimisticLockConflictException() {
+    Supplier supplier = supplier(1L);
+    Contact existing = contact(10L, "Alice", supplier, false);
+    existing.setVersion(2L);
+    UpdateContactRequest req = updateRequest(1L, false);
+    req.setVersion(1L);
+    when(contactRepository.findById(10L)).thenReturn(Optional.of(existing));
+
+    assertThatThrownBy(() -> contactService.update(10L, req))
+        .isInstanceOf(OptimisticLockConflictException.class)
+        .hasMessageContaining("Contact was modified by another user");
+  }
+
+  @Test
+  void forceOverwrite_staleVersion_updatesWithoutVersionCheck() {
+    Supplier supplier = supplier(1L);
+    Contact existing = contact(10L, "Alice", supplier, false);
+    existing.setVersion(2L);
+    UpdateContactRequest req = updateRequest(1L, false);
+    req.setVersion(0L);
+    req.setForceOverwrite(true);
+    when(contactRepository.findById(10L)).thenReturn(Optional.of(existing));
+    when(supplierRepository.findById(1L)).thenReturn(Optional.of(supplier));
+    when(contactRepository.save(existing)).thenReturn(existing);
+
+    ContactDto result = contactService.forceOverwrite(10L, req);
+
+    assertThat(result.getFirstName()).isEqualTo("Updated");
+  }
+
+  @Test
   void update_primaryContact_clearsOtherPrimaryContact() {
     Supplier supplier = supplier(1L);
     Contact existingPrimary = contact(10L, "Alice", supplier, true);
@@ -281,6 +315,7 @@ class ContactServiceTest {
     contact.setEmail(firstName.toLowerCase() + "@example.com");
     contact.setSupplier(supplier);
     contact.setPrimary(primary);
+    contact.setVersion(0L);
     return contact;
   }
 }
