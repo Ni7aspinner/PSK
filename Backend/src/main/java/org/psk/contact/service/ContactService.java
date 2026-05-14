@@ -19,26 +19,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class ContactService {
 
+  private static final String CONTACT_NOT_FOUND_WITH_ID = "Contact not found with id: ";
+
   private final ContactRepository contactRepository;
   private final SupplierRepository supplierRepository;
   private final ContactMapper contactMapper;
 
   public List<ContactDto> findAll() {
-    return contactRepository.findAll().stream().map(contactMapper::toDto).toList();
+    return toDtos(contactRepository.findAll());
   }
 
   public ContactDto findById(Long id) {
-    return contactRepository
-        .findById(id)
-        .map(contactMapper::toDto)
-        .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id));
+    return contactMapper.toDto(requireContact(id));
   }
 
   public List<ContactDto> findBySupplierId(Long supplierId) {
     ensureSupplierExists(supplierId);
-    return contactRepository.findBySupplierId(supplierId).stream()
-        .map(contactMapper::toDto)
-        .toList();
+    return toDtos(contactRepository.findBySupplierId(supplierId));
   }
 
   @Transactional
@@ -53,10 +50,7 @@ public class ContactService {
 
   @Transactional
   public ContactDto update(Long id, UpdateContactRequest req) {
-    Contact existing =
-        contactRepository
-            .findById(id)
-            .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id));
+    Contact existing = requireContact(id);
     Supplier supplier = findSupplier(req.getSupplierId());
     if (req.isPrimary()) {
       clearPrimaryForSupplier(supplier.getId(), existing.getId());
@@ -67,19 +61,12 @@ public class ContactService {
 
   @Transactional
   public void delete(Long id) {
-    contactRepository.delete(
-        contactRepository
-            .findById(id)
-            .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id)));
+    contactRepository.delete(requireContact(id));
   }
 
   @Transactional
   public ContactDto setPrimary(Long contactId) {
-    Contact contact =
-        contactRepository
-            .findById(contactId)
-            .orElseThrow(
-                () -> new ContactNotFoundException("Contact not found with id: " + contactId));
+    Contact contact = requireContact(contactId);
     Long supplierId = contact.getSupplier().getId();
     clearPrimaryForSupplier(supplierId, contact.getId());
     contact.setPrimary(true);
@@ -91,6 +78,16 @@ public class ContactService {
         .findById(supplierId)
         .orElseThrow(
             () -> new SupplierNotFoundException("Supplier not found with id: " + supplierId));
+  }
+
+  private Contact requireContact(Long id) {
+    return contactRepository
+        .findById(id)
+        .orElseThrow(() -> new ContactNotFoundException(CONTACT_NOT_FOUND_WITH_ID + id));
+  }
+
+  private List<ContactDto> toDtos(List<Contact> contacts) {
+    return contacts.stream().map(contactMapper::toDto).toList();
   }
 
   private void ensureSupplierExists(Long supplierId) {

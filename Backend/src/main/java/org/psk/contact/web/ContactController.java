@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api")
@@ -44,12 +43,7 @@ public class ContactController {
   @PostMapping("/contacts")
   public ResponseEntity<ContactDto> create(@Valid @RequestBody CreateContactRequest request) {
     ContactDto created = contactService.create(request);
-    URI location =
-        ServletUriComponentsBuilder.fromCurrentContextPath()
-            .path("/api/contacts/{id}")
-            .buildAndExpand(created.getId())
-            .toUri();
-    return ResponseEntity.created(location).body(created);
+    return ResponseEntity.created(URI.create("/api/contacts/" + created.getId())).body(created);
   }
 
   @PutMapping("/contacts/{id}")
