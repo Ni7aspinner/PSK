@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.psk.contact.domain.Contact;
 import org.psk.contract.domain.Contract;
 import org.psk.service.domain.Service;
 
@@ -56,6 +57,9 @@ public class Supplier {
 
   @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
   private Set<Contract> contracts = new HashSet<>();
+
+  @OneToMany(mappedBy = "supplier", fetch = FetchType.LAZY)
+  private Set<Contact> contacts = new HashSet<>();
 
   @PrePersist
   protected void onCreate() {
