@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.psk.common.conflict.ConflictResolutionHelper;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.common.exception.GlobalExceptionHandler;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
@@ -36,15 +38,18 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class SupplierControllerTest {
 
   @Mock private SupplierService supplierService;
+  @Mock private ConflictResolutionHelper conflictResolutionHelper;
 
   private MockMvc mockMvc;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @BeforeEach
   void setUp() {
+    GlobalExceptionHandler exceptionHandler = new GlobalExceptionHandler();
+    exceptionHandler.setConflictResolutionHelper(conflictResolutionHelper);
     mockMvc =
         MockMvcBuilders.standaloneSetup(new SupplierController(supplierService))
-            .setControllerAdvice(new GlobalExceptionHandler())
+            .setControllerAdvice(exceptionHandler)
             .build();
   }
 
@@ -146,6 +151,57 @@ class SupplierControllerTest {
                 .content(objectMapper.writeValueAsString(req)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("Delta Updated"));
+  }
+
+  @Test
+  void update_staleVersion_returns409WithConflictResponse() throws Exception {
+    UpdateSupplierRequest req = new UpdateSupplierRequest();
+    req.setName("Delta Updated");
+    req.setVersion(0L);
+    SupplierDto current =
+        SupplierDto.builder().id(2L).name("Current").registrationCode("D-001").version(2L).build();
+    when(conflictResolutionHelper.normalizeEntityType("Supplier")).thenReturn("Supplier");
+    when(conflictResolutionHelper.loadCurrentState("Supplier", 2L)).thenReturn(current);
+    when(conflictResolutionHelper.extractVersion(current)).thenReturn(2L);
+    when(supplierService.update(eq(2L), any(UpdateSupplierRequest.class)))
+        .thenThrow(
+            new OptimisticLockConflictException(
+                "Supplier", 2L, 0L, req, "Supplier was modified by another user"));
+
+    mockMvc
+        .perform(
+            put("/api/suppliers/2")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.entityType").value("Supplier"))
+        .andExpect(jsonPath("$.entityId").value(2))
+        .andExpect(jsonPath("$.submittedVersion").value(0))
+        .andExpect(jsonPath("$.currentVersion").value(2))
+        .andExpect(jsonPath("$.currentState.name").value("Current"))
+        .andExpect(jsonPath("$.submittedState.name").value("Delta Updated"))
+        .andExpect(jsonPath("$.message").value("Supplier was modified by another user"));
+  }
+
+  @Test
+  void forceOverwrite_staleVersion_returnsUpdatedSupplier() throws Exception {
+    UpdateSupplierRequest req = new UpdateSupplierRequest();
+    req.setName("Forced");
+    req.setVersion(0L);
+    req.setForceOverwrite(true);
+    SupplierDto updated =
+        SupplierDto.builder().id(2L).name("Forced").registrationCode("D-001").version(3L).build();
+    when(supplierService.forceOverwrite(eq(2L), any(UpdateSupplierRequest.class)))
+        .thenReturn(updated);
+
+    mockMvc
+        .perform(
+            put("/api/suppliers/2/force")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Forced"))
+        .andExpect(jsonPath("$.version").value(3));
   }
 
   @Test

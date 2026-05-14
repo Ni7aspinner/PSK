@@ -1,7 +1,9 @@
 package org.psk.contact.service;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.contact.domain.Contact;
 import org.psk.contact.dto.ContactDto;
 import org.psk.contact.dto.ContactMapper;
@@ -57,6 +59,21 @@ public class ContactService {
         contactRepository
             .findById(id)
             .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id));
+    ensureVersionMatches("Contact", id, existing.getVersion(), req.getVersion(), req);
+    Supplier supplier = findSupplier(req.getSupplierId());
+    if (req.isPrimary()) {
+      clearPrimaryForSupplier(supplier.getId(), existing.getId());
+    }
+    contactMapper.updateEntity(existing, req, supplier);
+    return contactMapper.toDto(contactRepository.save(existing));
+  }
+
+  @Transactional
+  public ContactDto forceOverwrite(Long id, UpdateContactRequest req) {
+    Contact existing =
+        contactRepository
+            .findById(id)
+            .orElseThrow(() -> new ContactNotFoundException("Contact not found with id: " + id));
     Supplier supplier = findSupplier(req.getSupplierId());
     if (req.isPrimary()) {
       clearPrimaryForSupplier(supplier.getId(), existing.getId());
@@ -108,6 +125,18 @@ public class ContactService {
     primaryContacts.forEach(contact -> contact.setPrimary(false));
     if (!primaryContacts.isEmpty()) {
       contactRepository.saveAllAndFlush(primaryContacts);
+    }
+  }
+
+  private void ensureVersionMatches(
+      String entityType, Long entityId, Long currentVersion, Long submittedVersion, Object req) {
+    if (!Objects.equals(currentVersion, submittedVersion)) {
+      throw new OptimisticLockConflictException(
+          entityType,
+          entityId,
+          submittedVersion,
+          req,
+          entityType + " was modified by another user");
     }
   }
 }

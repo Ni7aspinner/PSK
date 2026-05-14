@@ -1,7 +1,9 @@
 package org.psk.supplier.service;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
 import org.psk.supplier.dto.SupplierMapper;
@@ -42,14 +44,23 @@ public class SupplierService {
 
   @Transactional
   public SupplierDto update(Long id, UpdateSupplierRequest req) {
-    return supplierRepository
-        .findById(id)
-        .map(
-            supplier -> {
-              supplierMapper.updateEntity(supplier, req);
-              return supplierMapper.toDto(supplierRepository.save(supplier));
-            })
-        .orElseThrow(() -> new SupplierNotFoundException("Supplier not found with id: " + id));
+    org.psk.supplier.domain.Supplier supplier =
+        supplierRepository
+            .findById(id)
+            .orElseThrow(() -> new SupplierNotFoundException("Supplier not found with id: " + id));
+    ensureVersionMatches("Supplier", id, supplier.getVersion(), req.getVersion(), req);
+    supplierMapper.updateEntity(supplier, req);
+    return supplierMapper.toDto(supplierRepository.save(supplier));
+  }
+
+  @Transactional
+  public SupplierDto forceOverwrite(Long id, UpdateSupplierRequest req) {
+    org.psk.supplier.domain.Supplier supplier =
+        supplierRepository
+            .findById(id)
+            .orElseThrow(() -> new SupplierNotFoundException("Supplier not found with id: " + id));
+    supplierMapper.updateEntity(supplier, req);
+    return supplierMapper.toDto(supplierRepository.save(supplier));
   }
 
   @Transactional
@@ -58,5 +69,17 @@ public class SupplierService {
         supplierRepository
             .findById(id)
             .orElseThrow(() -> new SupplierNotFoundException("Supplier not found with id: " + id)));
+  }
+
+  private void ensureVersionMatches(
+      String entityType, Long entityId, Long currentVersion, Long submittedVersion, Object req) {
+    if (!Objects.equals(currentVersion, submittedVersion)) {
+      throw new OptimisticLockConflictException(
+          entityType,
+          entityId,
+          submittedVersion,
+          req,
+          entityType + " was modified by another user");
+    }
   }
 }

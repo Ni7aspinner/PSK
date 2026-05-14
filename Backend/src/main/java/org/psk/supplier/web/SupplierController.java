@@ -53,6 +53,13 @@ public class SupplierController {
     return supplierService.update(id, request);
   }
 
+  @PutMapping("/{id}/force")
+  public SupplierDto forceOverwrite(
+      @PathVariable Long id, @Valid @RequestBody UpdateSupplierRequest request) {
+    request.requireForceOverwrite();
+    return supplierService.forceOverwrite(id, request);
+  }
+
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> delete(@PathVariable Long id) {
     supplierService.delete(id);

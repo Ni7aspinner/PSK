@@ -1,10 +1,16 @@
 package org.psk.common.exception;
 
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.psk.common.conflict.ConflictResolutionHelper;
+import org.psk.common.conflict.ForceOverwriteRequiredException;
+import org.psk.common.conflict.OptimisticLockConflictException;
+import org.psk.common.conflict.OptimisticLockConflictResponse;
 import org.psk.contact.exception.ContactNotFoundException;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
@@ -14,8 +20,10 @@ import org.psk.service.exception.ServiceContractSupplierMismatchException;
 import org.psk.service.exception.ServiceNotFoundException;
 import org.psk.supplier.exception.DuplicateSupplierException;
 import org.psk.supplier.exception.SupplierNotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
@@ -26,6 +34,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+  private ConflictResolutionHelper conflictResolutionHelper;
+
+  @Autowired(required = false)
+  public void setConflictResolutionHelper(ConflictResolutionHelper conflictResolutionHelper) {
+    this.conflictResolutionHelper = conflictResolutionHelper;
+  }
 
   @ExceptionHandler({
     SupplierNotFoundException.class,
@@ -50,11 +65,24 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler({
     InvalidContractDateRangeException.class,
-    ServiceContractSupplierMismatchException.class
+    ServiceContractSupplierMismatchException.class,
+    ForceOverwriteRequiredException.class
   })
   public ResponseEntity<Map<String, Object>> handleBusinessRuleViolation(
       RuntimeException ex, HttpServletRequest request) {
     return error(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+  }
+
+  @ExceptionHandler(OptimisticLockException.class)
+  public ResponseEntity<OptimisticLockConflictResponse> handleOptimisticLock(
+      OptimisticLockException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(conflictResponse(ex));
+  }
+
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<OptimisticLockConflictResponse> handleObjectOptimisticLock(
+      ObjectOptimisticLockingFailureException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(conflictResponse(ex));
   }
 
   @ExceptionHandler(BadCredentialsException.class)
@@ -111,5 +139,83 @@ public class GlobalExceptionHandler {
 
   private String message(FieldError fe) {
     return fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Invalid value";
+  }
+
+  private OptimisticLockConflictResponse conflictResponse(OptimisticLockException ex) {
+    String entityType;
+    Long entityId;
+    Long submittedVersion = null;
+    Object submittedState = null;
+
+    if (ex instanceof OptimisticLockConflictException conflict) {
+      entityType = conflict.getEntityType();
+      entityId = conflict.getEntityId();
+      submittedVersion = conflict.getSubmittedVersion();
+      submittedState = conflict.getSubmittedState();
+    } else {
+      Object entity = ex.getEntity();
+      entityType = entity != null ? entity.getClass().getSimpleName() : "Unknown";
+      entityId = extractLongProperty(entity, "getId");
+    }
+    return conflictResponse(
+        entityType, entityId, submittedVersion, submittedState, ex.getMessage());
+  }
+
+  private OptimisticLockConflictResponse conflictResponse(
+      ObjectOptimisticLockingFailureException ex) {
+    return conflictResponse(
+        ex.getPersistentClassName(), toLong(ex.getIdentifier()), null, null, ex.getMessage());
+  }
+
+  private OptimisticLockConflictResponse conflictResponse(
+      String entityType,
+      Long entityId,
+      Long submittedVersion,
+      Object submittedState,
+      String message) {
+    String normalizedType =
+        conflictResolutionHelper != null
+            ? conflictResolutionHelper.normalizeEntityType(entityType)
+            : entityType;
+    Object currentState =
+        conflictResolutionHelper != null
+            ? conflictResolutionHelper.loadCurrentState(normalizedType, entityId)
+            : null;
+    Long currentVersion =
+        conflictResolutionHelper != null
+            ? conflictResolutionHelper.extractVersion(currentState)
+            : null;
+
+    return OptimisticLockConflictResponse.builder()
+        .entityType(normalizedType)
+        .entityId(entityId)
+        .submittedVersion(submittedVersion)
+        .currentVersion(currentVersion)
+        .currentState(currentState)
+        .submittedState(submittedState)
+        .message(message)
+        .build();
+  }
+
+  private Long extractLongProperty(Object entity, String getterName) {
+    if (entity == null) {
+      return null;
+    }
+    try {
+      Method getter = entity.getClass().getMethod(getterName);
+      return toLong(getter.invoke(entity));
+    } catch (ReflectiveOperationException ex) {
+      return null;
+    }
+  }
+
+  private Long toLong(Object value) {
+    if (value instanceof Long longValue) {
+      return longValue;
+    }
+    if (value instanceof Number number) {
+      return number.longValue();
+    }
+    return null;
   }
 }

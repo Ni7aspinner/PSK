@@ -5,10 +5,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.psk.common.conflict.ForceOverwriteRequest;
 import org.psk.contract.domain.ContractStatus;
 
 @Data
-public class UpdateContractRequest {
+@EqualsAndHashCode(callSuper = true)
+public class UpdateContractRequest extends ForceOverwriteRequest {
 
   @NotBlank
   @Size(max = 255)

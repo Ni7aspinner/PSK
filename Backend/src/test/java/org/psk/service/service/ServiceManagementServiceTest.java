@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.contract.domain.Contract;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.repository.ContractRepository;
@@ -132,6 +133,37 @@ class ServiceManagementServiceTest {
   }
 
   @Test
+  void update_staleVersion_throwsOptimisticLockConflictException() {
+    Supplier supplier = supplier(1L);
+    Service existing = service(5L, supplier, null);
+    existing.setVersion(2L);
+    UpdateServiceRequest req = updateRequest(1L, null);
+    req.setVersion(1L);
+    when(serviceRepository.findById(5L)).thenReturn(Optional.of(existing));
+
+    assertThatThrownBy(() -> serviceManagementService.update(5L, req))
+        .isInstanceOf(OptimisticLockConflictException.class)
+        .hasMessageContaining("Service was modified by another user");
+  }
+
+  @Test
+  void forceOverwrite_staleVersion_updatesWithoutVersionCheck() {
+    Supplier supplier = supplier(1L);
+    Service existing = service(5L, supplier, null);
+    existing.setVersion(2L);
+    UpdateServiceRequest req = updateRequest(1L, null);
+    req.setVersion(0L);
+    req.setForceOverwrite(true);
+    when(serviceRepository.findById(5L)).thenReturn(Optional.of(existing));
+    when(supplierRepository.findById(1L)).thenReturn(Optional.of(supplier));
+    when(serviceRepository.save(existing)).thenReturn(existing);
+
+    ServiceDto result = serviceManagementService.forceOverwrite(5L, req);
+
+    assertThat(result.getName()).isEqualTo("Updated service");
+  }
+
+  @Test
   void delete_existingService_callsRepositoryDelete() {
     Service existing = service(5L, supplier(1L), null);
     when(serviceRepository.findById(5L)).thenReturn(Optional.of(existing));
@@ -184,6 +216,7 @@ class ServiceManagementServiceTest {
     service.setSupplier(supplier);
     service.setContract(contract);
     service.setActive(true);
+    service.setVersion(0L);
     return service;
   }
 }

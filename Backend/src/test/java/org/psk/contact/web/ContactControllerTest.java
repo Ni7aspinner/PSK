@@ -150,6 +150,31 @@ class ContactControllerTest {
   }
 
   @Test
+  void forceOverwrite_staleVersion_returnsUpdatedContact() throws Exception {
+    String body =
+        "{\"firstName\":\"Alice\",\"lastName\":\"Forced\",\"position\":\"Director\","
+            + "\"email\":\"alice@example.com\",\"phone\":\"+37060000000\","
+            + "\"primary\":true,\"supplierId\":10,\"version\":0,\"forceOverwrite\":true}";
+    ContactDto updated =
+        ContactDto.builder()
+            .id(5L)
+            .firstName("Alice")
+            .lastName("Forced")
+            .primary(true)
+            .supplierId(10L)
+            .version(3L)
+            .build();
+    when(contactService.forceOverwrite(eq(5L), any(UpdateContactRequest.class)))
+        .thenReturn(updated);
+
+    mockMvc
+        .perform(put("/api/contacts/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.lastName").value("Forced"))
+        .andExpect(jsonPath("$.version").value(3));
+  }
+
+  @Test
   void setPrimary_existingContact_returnsPrimaryContact() throws Exception {
     ContactDto primary =
         ContactDto.builder().id(5L).firstName("Alice").primary(true).supplierId(10L).build();

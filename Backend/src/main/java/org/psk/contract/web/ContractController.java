@@ -53,6 +53,13 @@ public class ContractController {
     return contractService.update(id, request);
   }
 
+  @PutMapping("/{id}/force")
+  public ContractDto forceOverwrite(
+      @PathVariable Long id, @Valid @RequestBody UpdateContractRequest request) {
+    request.requireForceOverwrite();
+    return contractService.forceOverwrite(id, request);
+  }
+
   @PostMapping("/{id}/terminate")
   public ContractDto terminate(@PathVariable Long id) {
     return contractService.terminate(id);

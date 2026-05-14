@@ -117,6 +117,23 @@ class ServiceControllerTest {
   }
 
   @Test
+  void forceOverwrite_staleVersion_returnsUpdatedService() throws Exception {
+    String body =
+        "{\"name\":\"Forced\",\"description\":\"Forced\",\"active\":true,"
+            + "\"supplierId\":10,\"contractId\":20,\"version\":0,\"forceOverwrite\":true}";
+    ServiceDto updated =
+        ServiceDto.builder().id(5L).name("Forced").active(true).supplierId(10L).version(3L).build();
+    when(serviceManagementService.forceOverwrite(eq(5L), any(UpdateServiceRequest.class)))
+        .thenReturn(updated);
+
+    mockMvc
+        .perform(put("/api/services/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Forced"))
+        .andExpect(jsonPath("$.version").value(3));
+  }
+
+  @Test
   void delete_notFound_returns404() throws Exception {
     doThrow(new ServiceNotFoundException("Not found")).when(serviceManagementService).delete(99L);
 

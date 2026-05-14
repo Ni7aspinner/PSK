@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.supplier.domain.Supplier;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
@@ -93,6 +94,7 @@ class SupplierServiceTest {
     Supplier existing = new Supplier();
     existing.setName("Old");
     existing.setRegistrationCode("C-001");
+    existing.setVersion(0L);
     when(supplierRepository.findById(1L)).thenReturn(Optional.of(existing));
     when(supplierRepository.save(existing)).thenReturn(existing);
 
@@ -103,6 +105,43 @@ class SupplierServiceTest {
     SupplierDto result = supplierService.update(1L, req);
 
     assertThat(result.getName()).isEqualTo("New");
+  }
+
+  @Test
+  void update_staleVersion_throwsOptimisticLockConflictException() {
+    Supplier existing = new Supplier();
+    existing.setId(1L);
+    existing.setName("Old");
+    existing.setRegistrationCode("C-001");
+    existing.setVersion(2L);
+    when(supplierRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+    UpdateSupplierRequest req = new UpdateSupplierRequest();
+    req.setName("New");
+    req.setVersion(1L);
+
+    assertThatThrownBy(() -> supplierService.update(1L, req))
+        .isInstanceOf(OptimisticLockConflictException.class)
+        .hasMessageContaining("Supplier was modified by another user");
+  }
+
+  @Test
+  void forceOverwrite_staleVersion_updatesWithoutVersionCheck() {
+    Supplier existing = new Supplier();
+    existing.setName("Old");
+    existing.setRegistrationCode("C-001");
+    existing.setVersion(2L);
+    when(supplierRepository.findById(1L)).thenReturn(Optional.of(existing));
+    when(supplierRepository.save(existing)).thenReturn(existing);
+
+    UpdateSupplierRequest req = new UpdateSupplierRequest();
+    req.setName("Forced");
+    req.setVersion(0L);
+    req.setForceOverwrite(true);
+
+    SupplierDto result = supplierService.forceOverwrite(1L, req);
+
+    assertThat(result.getName()).isEqualTo("Forced");
   }
 
   @Test

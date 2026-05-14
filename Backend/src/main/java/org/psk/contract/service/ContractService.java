@@ -1,7 +1,9 @@
 package org.psk.contract.service;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.contract.domain.Contract;
 import org.psk.contract.domain.ContractStatus;
 import org.psk.contract.dto.ContractDto;
@@ -59,6 +61,18 @@ public class ContractService {
 
   @Transactional
   public ContractDto update(Long id, UpdateContractRequest req) {
+    Contract existing =
+        contractRepository
+            .findById(id)
+            .orElseThrow(() -> new ContractNotFoundException("Contract not found with id: " + id));
+    ensureVersionMatches("Contract", id, existing.getVersion(), req.getVersion(), req);
+    validateDateRange(req.getStartDate(), req.getEndDate());
+    contractMapper.updateEntity(existing, req);
+    return contractMapper.toDto(contractRepository.save(existing));
+  }
+
+  @Transactional
+  public ContractDto forceOverwrite(Long id, UpdateContractRequest req) {
     validateDateRange(req.getStartDate(), req.getEndDate());
     Contract existing =
         contractRepository
@@ -106,6 +120,18 @@ public class ContractService {
   private void validateDateRange(java.time.LocalDate startDate, java.time.LocalDate endDate) {
     if (startDate == null || endDate == null || !startDate.isBefore(endDate)) {
       throw new InvalidContractDateRangeException("Contract start date must be before end date");
+    }
+  }
+
+  private void ensureVersionMatches(
+      String entityType, Long entityId, Long currentVersion, Long submittedVersion, Object req) {
+    if (!Objects.equals(currentVersion, submittedVersion)) {
+      throw new OptimisticLockConflictException(
+          entityType,
+          entityId,
+          submittedVersion,
+          req,
+          entityType + " was modified by another user");
     }
   }
 }

@@ -58,6 +58,13 @@ public class ContactController {
     return contactService.update(id, request);
   }
 
+  @PutMapping("/contacts/{id}/force")
+  public ContactDto forceOverwrite(
+      @PathVariable Long id, @Valid @RequestBody UpdateContactRequest request) {
+    request.requireForceOverwrite();
+    return contactService.forceOverwrite(id, request);
+  }
+
   @PutMapping("/contacts/{id}/set-primary")
   public ContactDto setPrimary(@PathVariable Long id) {
     return contactService.setPrimary(id);

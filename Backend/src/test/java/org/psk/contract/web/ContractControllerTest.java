@@ -124,6 +124,31 @@ class ContractControllerTest {
   }
 
   @Test
+  void forceOverwrite_staleVersion_returnsUpdatedContract() throws Exception {
+    String body =
+        "{\"title\":\"Forced\",\"startDate\":\"2026-01-01\","
+            + "\"endDate\":\"2026-12-31\",\"status\":\"ACTIVE\","
+            + "\"version\":0,\"forceOverwrite\":true}";
+    ContractDto updated =
+        ContractDto.builder()
+            .id(5L)
+            .contractNumber("C-001")
+            .title("Forced")
+            .status(ContractStatus.ACTIVE)
+            .version(3L)
+            .build();
+    when(contractService.forceOverwrite(eq(5L), any(UpdateContractRequest.class)))
+        .thenReturn(updated);
+
+    mockMvc
+        .perform(
+            put("/api/contracts/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Forced"))
+        .andExpect(jsonPath("$.version").value(3));
+  }
+
+  @Test
   void terminate_existing_returnsTerminatedContract() throws Exception {
     ContractDto terminated =
         ContractDto.builder()

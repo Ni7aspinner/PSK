@@ -58,6 +58,13 @@ public class ServiceController {
     return serviceManagementService.update(id, request);
   }
 
+  @PutMapping("/services/{id}/force")
+  public ServiceDto forceOverwrite(
+      @PathVariable Long id, @Valid @RequestBody UpdateServiceRequest request) {
+    request.requireForceOverwrite();
+    return serviceManagementService.forceOverwrite(id, request);
+  }
+
   @DeleteMapping("/services/{id}")
   public ResponseEntity<Void> delete(@PathVariable Long id) {
     serviceManagementService.delete(id);

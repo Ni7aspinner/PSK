@@ -1,7 +1,9 @@
 package org.psk.service.service;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.contract.domain.Contract;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.repository.ContractRepository;
@@ -59,6 +61,19 @@ public class ServiceManagementService {
         serviceRepository
             .findById(id)
             .orElseThrow(() -> new ServiceNotFoundException("Service not found with id: " + id));
+    ensureVersionMatches("Service", id, existing.getVersion(), req.getVersion(), req);
+    Supplier supplier = findSupplier(req.getSupplierId());
+    Contract contract = resolveContract(req.getContractId(), supplier.getId());
+    serviceMapper.updateEntity(existing, req, supplier, contract);
+    return serviceMapper.toDto(serviceRepository.save(existing));
+  }
+
+  @Transactional
+  public ServiceDto forceOverwrite(Long id, UpdateServiceRequest req) {
+    org.psk.service.domain.Service existing =
+        serviceRepository
+            .findById(id)
+            .orElseThrow(() -> new ServiceNotFoundException("Service not found with id: " + id));
     Supplier supplier = findSupplier(req.getSupplierId());
     Contract contract = resolveContract(req.getContractId(), supplier.getId());
     serviceMapper.updateEntity(existing, req, supplier, contract);
@@ -102,5 +117,17 @@ public class ServiceManagementService {
           "Contract " + contractId + " does not belong to supplier " + supplierId);
     }
     return contract;
+  }
+
+  private void ensureVersionMatches(
+      String entityType, Long entityId, Long currentVersion, Long submittedVersion, Object req) {
+    if (!Objects.equals(currentVersion, submittedVersion)) {
+      throw new OptimisticLockConflictException(
+          entityType,
+          entityId,
+          submittedVersion,
+          req,
+          entityType + " was modified by another user");
+    }
   }
 }

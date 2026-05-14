@@ -5,9 +5,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import org.psk.common.conflict.ForceOverwriteRequest;
 
 @Data
-public class UpdateContactRequest {
+@EqualsAndHashCode(callSuper = true)
+public class UpdateContactRequest extends ForceOverwriteRequest {
 
   @NotBlank
   @Size(max = 100)
