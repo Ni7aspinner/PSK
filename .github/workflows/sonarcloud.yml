@@ -132,8 +132,8 @@ jobs:
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.sources=Backend/src/main/java,Frontend/src
-            -Dsonar.java.binaries=Backend/target/classes
-            -Dsonar.coverage.jacoco.xmlReportPaths=Backend/target/site/jacoco/jacoco.xml
+            -Dsonar.java.binaries=./classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=./site/jacoco/jacoco.xml
             -Dsonar.javascript.lcov.reportPaths=Frontend/coverage/lcov.info
             -Dsonar.exclusions=Frontend/dist/**,Frontend/node_modules/**,**/*.test.*,**/*.spec.*
             -Dsonar.qualitygate.wait=true
