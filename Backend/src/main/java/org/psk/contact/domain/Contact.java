@@ -16,7 +16,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
-import java.util.Objects;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -82,17 +81,11 @@ public class Contact {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof Contact other)) return false;
-    Long supplierId = supplier != null ? supplier.getId() : null;
-    Long otherSupplierId = other.supplier != null ? other.supplier.getId() : null;
-    return email != null
-        && supplierId != null
-        && email.equals(other.email)
-        && supplierId.equals(otherSupplierId);
+    return id != null && id.equals(other.id);
   }
 
   @Override
   public int hashCode() {
-    Long supplierId = supplier != null ? supplier.getId() : null;
-    return Objects.hash(email, supplierId);
+    return Contact.class.hashCode();
   }
 }
