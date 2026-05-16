@@ -25,15 +25,16 @@ const withJsonBody = (method, payload) => ({
   body: JSON.stringify(payload),
 })
 
-async function request(path, session, options = {}, fallback) {
+async function request(path, session, options, fallback) {
+  const requestOptions = options ?? {}
   const headers = {
     ...(session?.token ? { Authorization: `Bearer ${session.token}` } : {}),
-    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-    ...options.headers,
+    ...(requestOptions.body ? { 'Content-Type': 'application/json' } : {}),
+    ...requestOptions.headers,
   }
 
   const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
+    ...requestOptions,
     headers,
   })
 

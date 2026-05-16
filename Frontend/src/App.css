@@ -527,10 +527,13 @@ button {
 }
 
 .modal-dialog {
+  position: relative;
   width: 100%;
   max-width: 480px;
   max-height: calc(100vh - 48px);
+  margin: 0;
   overflow-y: auto;
+  color: inherit;
   background: var(--surface-1);
   border: 1px solid var(--hairline-strong);
   border-radius: 16px;

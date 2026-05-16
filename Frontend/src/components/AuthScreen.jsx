@@ -3,6 +3,8 @@ import PropTypes from 'prop-types'
 function AuthScreen({ actions, heroMark, state }) {
   const { authError, authMode, loading, registerSuccess } = state
   const { changeAuthMode, register, signIn } = actions
+  const actionLabel = authMode === 'login' ? 'Sign in' : 'Register'
+  const submitLabel = loading ? 'Working...' : actionLabel
 
   return (
     <main className="auth-screen">
@@ -48,7 +50,7 @@ function AuthScreen({ actions, heroMark, state }) {
           {authError && <p className="alert-text">{authError}</p>}
           {registerSuccess && <p className="success-text">{registerSuccess}</p>}
           <button type="submit" className="primary-action" disabled={loading}>
-            {loading ? 'Working...' : authMode === 'login' ? 'Sign in' : 'Register'}
+            {submitLabel}
           </button>
           <button type="button" className="link-action" onClick={changeAuthMode}>
             {authMode === 'login' ? 'Create account' : 'Back to sign in'}

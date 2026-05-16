@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 import heroMark from '../assets/hero.png'
 import { backendApi } from '../api/backendApi'
 import { resourceConfig, navItems } from '../models/resourceConfig'
-import { asRows, formPayload, replaceById, contractsForSupplier, servicesForContract, getEnrichedRows } from '../utils/dashboardUtils'
+import { asRows, formPayload, replaceById, removeById, contractsForSupplier, servicesForContract, getEnrichedRows } from '../utils/dashboardUtils'
 import { ResourceTable } from './ResourceTable'
 import { FormModal } from './FormModal'
 
@@ -107,7 +107,7 @@ function Dashboard({ session, onSignOut }) {
     const config = resourceConfig[resourceKey]
     runAction(`delete-${resourceKey}-${item.id}`, async () => {
       await backendApi[`delete${config.title.slice(0, -1)}`](session, item.id)
-      setResources((current) => ({ ...current, [resourceKey]: current[resourceKey].filter((row) => row.id !== item.id) }))
+      setResources((current) => ({ ...current, [resourceKey]: removeById(current[resourceKey], item.id) }))
       setSelected((current) => ({ ...current, [resourceKey]: null }))
       setExpandedDetails((current) => current[resourceKey]?.item?.id === item.id ? { ...current, [resourceKey]: null } : current)
     })

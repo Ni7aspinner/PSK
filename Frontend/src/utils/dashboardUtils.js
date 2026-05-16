@@ -44,6 +44,8 @@ export function formPayload(form, fields, mode, source) {
 
 export const replaceById = (rows, item) => rows.map((row) => (row.id === item.id ? item : row))
 
+export const removeById = (rows, id) => rows.filter((row) => row.id !== id)
+
 export const resourceLabel = (resourceKey, item) => {
   if (!item) return '-'
   if (resourceKey === 'contracts') return item.title ?? item.contractNumber

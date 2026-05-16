@@ -1,12 +1,45 @@
 import PropTypes from 'prop-types'
 import { resourceConfig } from '../models/resourceConfig'
 
+function renderFieldControl(field, item, resources) {
+  if (field.type === 'select') {
+    const value = item?.[field.name] === undefined ? field.options[0] : String(item[field.name])
+    return (
+      <select name={field.name} required={field.required} defaultValue={value}>
+        {field.options.map((opt) => <option value={opt} key={opt}>{opt}</option>)}
+      </select>
+    )
+  }
+
+  if (field.type === 'resourceSelect' && resources) {
+    return (
+      <select name={field.name} required={field.required} defaultValue={item?.[field.name] ?? ''}>
+        <option value="" disabled>Select {field.label.toLowerCase()}</option>
+        {resources[field.resourceTarget]?.map((resItem) => {
+          const targetConfig = resourceConfig[field.resourceTarget]
+          const label = resItem.title ?? resItem[targetConfig.primaryField] ?? `#${resItem.id}`
+          return <option value={resItem.id} key={resItem.id}>{label}</option>
+        })}
+      </select>
+    )
+  }
+
+  return (
+    <input
+      name={field.name}
+      type={field.type ?? 'text'}
+      required={field.required}
+      defaultValue={item?.[field.name] ?? ''}
+    />
+  )
+}
+
 export function FormModal({ busy, config, item, mode, resources, onClose, onSubmit }) {
   const title = mode === 'create' ? `Create ${config.singular}` : `Update ${config.singular}`
 
   return (
     <div className="modal-backdrop">
-      <section className="modal-dialog" role="dialog" aria-modal="true">
+      <dialog className="modal-dialog" aria-modal="true" open>
         <div className="modal-header">
           <div>
             <p className="kicker">{mode === 'create' ? 'New record' : `Editing #${item.id}`}</p>
@@ -18,27 +51,14 @@ export function FormModal({ busy, config, item, mode, resources, onClose, onSubm
           {config.fields.filter((f) => !(mode === 'edit' && f.createOnly)).map((field) => (
             <label key={field.name}>
               <span>{field.label}</span>
-              {field.type === 'select' ? (
-                <select name={field.name} required={field.required} defaultValue={item?.[field.name] === undefined ? field.options[0] : String(item[field.name])}>
-                  {field.options.map((opt) => <option value={opt} key={opt}>{opt}</option>)}
-                </select>
-              ) : field.type === 'resourceSelect' && resources ? (
-                <select name={field.name} required={field.required} defaultValue={item?.[field.name] ?? ''}>
-                  <option value="" disabled>Select {field.label.toLowerCase()}</option>
-                  {resources[field.resourceTarget]?.map((resItem) => {
-                    const targetConfig = resourceConfig[field.resourceTarget]
-                    const label = resItem.title ?? resItem[targetConfig.primaryField] ?? `#${resItem.id}`
-                    return <option value={resItem.id} key={resItem.id}>{label}</option>
-                  })}
-                </select>
-              ) : <input name={field.name} type={field.type ?? 'text'} required={field.required} defaultValue={item?.[field.name] ?? ''} />}
+              {renderFieldControl(field, item, resources)}
             </label>
           ))}
           <div className="form-actions">
             <button type="submit" className="primary-action" disabled={busy}>{busy ? 'Working...' : title}</button>
           </div>
         </form>
-      </section>
+      </dialog>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import {
   contractsForSupplier,
   formPayload,
   getEnrichedRows,
+  removeById,
   replaceById,
   resourceLabel,
   servicesForContract,
@@ -72,6 +73,15 @@ describe('dashboardUtils', () => {
     ], { id: 1, name: 'New' })).toEqual([
       { id: 1, name: 'New' },
       { id: 2, name: 'Same' },
+    ])
+  })
+
+  it('removes matching rows by id without changing other rows', () => {
+    expect(removeById([
+      { id: 1, name: 'Remove' },
+      { id: 2, name: 'Keep' },
+    ], 1)).toEqual([
+      { id: 2, name: 'Keep' },
     ])
   })
 

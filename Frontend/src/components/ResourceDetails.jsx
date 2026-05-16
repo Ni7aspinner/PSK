@@ -6,7 +6,7 @@ export function ResourceDetails({ detail, onRelatedSelect, primary, resourceKey 
   const config = resourceConfig[resourceKey]
 
   return (
-    <section className="details-panel" role="region">
+    <section className="details-panel">
       <div className="details-heading">
         <div>
           <p className="kicker">{config.singular} details</p>
