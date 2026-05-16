@@ -31,7 +31,8 @@ function App() {
         setAuthMode('login')
       }
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : `Unable to ${mode === 'login' ? 'sign in' : 'register user'}.`)
+      const fallbackMessage = mode === 'login' ? 'Unable to sign in.' : 'Unable to register user.'
+      setAuthError(error instanceof Error ? error.message : fallbackMessage)
     } finally {
       setLoading(false)
     }

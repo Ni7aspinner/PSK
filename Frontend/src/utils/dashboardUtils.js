@@ -2,21 +2,37 @@ import { resourceConfig } from '../models/resourceConfig'
 
 export const asRows = (value) => (Array.isArray(value) ? value : [])
 
+const isEditCreateOnlyField = (field, mode) => mode === 'edit' && field.createOnly
+
+function normalizeActiveValue(value) {
+  if (value === 'true') return true
+  if (value === 'false') return false
+  return value
+}
+
+function normalizeFieldValue(field, value) {
+  if (field.type === 'number') {
+    return value === '' || value === null ? null : Number(value)
+  }
+
+  if (field.type === 'select' && field.name === 'active') {
+    return normalizeActiveValue(value)
+  }
+
+  return value
+}
+
+const hasValue = (value) => value !== '' && value !== null
+
 export function formPayload(form, fields, mode, source) {
   const formData = new FormData(form)
   const payload = {}
 
   for (const field of fields) {
-    if (mode === 'edit' && field.createOnly) continue
+    if (isEditCreateOnlyField(field, mode)) continue
 
-    let value = formData.get(field.name)
-    if (field.type === 'number') {
-      value = value === '' || value === null ? null : Number(value)
-    } else if (field.type === 'select' && field.name === 'active') {
-      value = value === 'true' ? true : value === 'false' ? false : value
-    }
-
-    if (value !== '' && value !== null) payload[field.name] = value
+    const value = normalizeFieldValue(field, formData.get(field.name))
+    if (hasValue(value)) payload[field.name] = value
   }
 
   if (mode === 'edit' && source?.version !== undefined) {

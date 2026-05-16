@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { resourceConfig } from '../models/resourceConfig'
 
 export function FormModal({ busy, config, item, mode, resources, onClose, onSubmit }) {
@@ -16,7 +17,7 @@ export function FormModal({ busy, config, item, mode, resources, onClose, onSubm
         <form className="resource-form" onSubmit={onSubmit}>
           {config.fields.filter((f) => !(mode === 'edit' && f.createOnly)).map((field) => (
             <label key={field.name}>
-              {field.label}
+              <span>{field.label}</span>
               {field.type === 'select' ? (
                 <select name={field.name} required={field.required} defaultValue={item?.[field.name] === undefined ? field.options[0] : String(item[field.name])}>
                   {field.options.map((opt) => <option value={opt} key={opt}>{opt}</option>)}
@@ -40,4 +41,33 @@ export function FormModal({ busy, config, item, mode, resources, onClose, onSubm
       </section>
     </div>
   )
+}
+
+const resourceItemPropType = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  name: PropTypes.string,
+  title: PropTypes.string,
+})
+
+const fieldPropType = PropTypes.shape({
+  createOnly: PropTypes.bool,
+  label: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
+  options: PropTypes.arrayOf(PropTypes.string),
+  required: PropTypes.bool,
+  resourceTarget: PropTypes.string,
+  type: PropTypes.string,
+})
+
+FormModal.propTypes = {
+  busy: PropTypes.bool,
+  config: PropTypes.shape({
+    fields: PropTypes.arrayOf(fieldPropType).isRequired,
+    singular: PropTypes.string.isRequired,
+  }).isRequired,
+  item: resourceItemPropType,
+  mode: PropTypes.oneOf(['create', 'edit']).isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  resources: PropTypes.objectOf(PropTypes.arrayOf(resourceItemPropType)),
 }

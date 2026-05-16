@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import PropTypes from 'prop-types'
 import heroMark from '../assets/hero.png'
 import { backendApi } from '../api/backendApi'
 import { resourceConfig, navItems } from '../models/resourceConfig'
@@ -229,6 +230,15 @@ function Dashboard({ session, onSignOut }) {
       </div>
     </main>
   )
+}
+
+Dashboard.propTypes = {
+  onSignOut: PropTypes.func.isRequired,
+  session: PropTypes.shape({
+    role: PropTypes.string,
+    token: PropTypes.string.isRequired,
+    username: PropTypes.string.isRequired,
+  }).isRequired,
 }
 
 export { Dashboard }

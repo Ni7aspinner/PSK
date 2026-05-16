@@ -1,3 +1,5 @@
+import PropTypes from 'prop-types'
+
 function AuthScreen({ actions, heroMark, state }) {
   const { authError, authMode, loading, registerSuccess } = state
   const { changeAuthMode, register, signIn } = actions
@@ -17,22 +19,22 @@ function AuthScreen({ actions, heroMark, state }) {
           {authMode === 'login' ? (
             <>
               <label>
-                Username
+                <span>Username</span>
                 <input name="username" autoComplete="username" required />
               </label>
               <label>
-                Password
+                <span>Password</span>
                 <input name="password" type="password" autoComplete="current-password" required />
               </label>
             </>
           ) : (
             <>
               <label>
-                New username
+                <span>New username</span>
                 <input name="username" autoComplete="username" required />
               </label>
               <label>
-                New password
+                <span>New password</span>
                 <input
                   name="password"
                   type="password"
@@ -55,6 +57,21 @@ function AuthScreen({ actions, heroMark, state }) {
       </section>
     </main>
   )
+}
+
+AuthScreen.propTypes = {
+  actions: PropTypes.shape({
+    changeAuthMode: PropTypes.func.isRequired,
+    register: PropTypes.func.isRequired,
+    signIn: PropTypes.func.isRequired,
+  }).isRequired,
+  heroMark: PropTypes.string.isRequired,
+  state: PropTypes.shape({
+    authError: PropTypes.string.isRequired,
+    authMode: PropTypes.oneOf(['login', 'register']).isRequired,
+    loading: PropTypes.bool.isRequired,
+    registerSuccess: PropTypes.string.isRequired,
+  }).isRequired,
 }
 
 export { AuthScreen }

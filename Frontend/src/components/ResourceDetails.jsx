@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types'
 import { resourceConfig } from '../models/resourceConfig'
 import { resourceLabel } from '../utils/dashboardUtils'
 
@@ -89,4 +90,60 @@ function ServiceDetails({ detail, onRelatedSelect }) {
       </div>
     </div>
   )
+}
+
+const resourceItemPropType = PropTypes.shape({
+  active: PropTypes.bool,
+  contractNumber: PropTypes.string,
+  email: PropTypes.string,
+  endDate: PropTypes.string,
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  name: PropTypes.string,
+  phone: PropTypes.string,
+  startDate: PropTypes.string,
+  status: PropTypes.string,
+  title: PropTypes.string,
+})
+
+const detailPropType = PropTypes.shape({
+  contract: resourceItemPropType,
+  contracts: PropTypes.arrayOf(resourceItemPropType),
+  services: PropTypes.arrayOf(resourceItemPropType),
+  supplier: resourceItemPropType,
+})
+
+ResourceDetails.propTypes = {
+  detail: detailPropType.isRequired,
+  onRelatedSelect: PropTypes.func.isRequired,
+  primary: PropTypes.string.isRequired,
+  resourceKey: PropTypes.oneOf(['suppliers', 'contracts', 'services']).isRequired,
+}
+
+RelatedRecordButton.propTypes = {
+  item: resourceItemPropType.isRequired,
+  meta: PropTypes.string,
+  onRelatedSelect: PropTypes.func.isRequired,
+  resourceKey: PropTypes.oneOf(['suppliers', 'contracts', 'services']).isRequired,
+}
+
+RelatedList.propTypes = {
+  emptyLabel: PropTypes.string.isRequired,
+  items: PropTypes.arrayOf(resourceItemPropType).isRequired,
+  renderItem: PropTypes.func.isRequired,
+  title: PropTypes.string.isRequired,
+}
+
+SupplierDetails.propTypes = {
+  detail: detailPropType.isRequired,
+  onRelatedSelect: PropTypes.func.isRequired,
+}
+
+ContractDetails.propTypes = {
+  detail: detailPropType.isRequired,
+  onRelatedSelect: PropTypes.func.isRequired,
+}
+
+ServiceDetails.propTypes = {
+  detail: detailPropType.isRequired,
+  onRelatedSelect: PropTypes.func.isRequired,
 }

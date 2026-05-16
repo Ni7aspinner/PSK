@@ -2,6 +2,7 @@
 Backend/target/
 
 # Frontend build output and dependencies
+Frontend/coverage/
 Frontend/dist/
 Frontend/node_modules/
 

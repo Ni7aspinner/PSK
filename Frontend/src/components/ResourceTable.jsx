@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import PropTypes from 'prop-types'
 import { formatCellValue } from '../utils/modelUtils'
 import { IconEdit, IconChevronDown, IconChevronUp, IconTrash, IconTerminate } from './Icons'
 import { ResourceDetails } from './ResourceDetails'
@@ -55,4 +56,34 @@ export function ResourceTable({ busyAction, config, deleteItem, expandedDetails,
       </table>
     </div>
   )
+}
+
+const columnPropType = PropTypes.shape({
+  key: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+})
+
+const rowPropType = PropTypes.shape({
+  id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+})
+
+ResourceTable.propTypes = {
+  busyAction: PropTypes.string,
+  closeDetails: PropTypes.func,
+  config: PropTypes.shape({
+    columns: PropTypes.arrayOf(columnPropType).isRequired,
+    primaryField: PropTypes.string.isRequired,
+    title: PropTypes.string.isRequired,
+  }).isRequired,
+  deleteItem: PropTypes.func,
+  expandedDetails: PropTypes.shape({
+    item: rowPropType,
+  }),
+  loadDetails: PropTypes.func,
+  openEditModal: PropTypes.func,
+  openRelatedDetails: PropTypes.func,
+  resourceKey: PropTypes.oneOf(['suppliers', 'contracts', 'services']).isRequired,
+  rows: PropTypes.arrayOf(rowPropType).isRequired,
+  selected: rowPropType,
+  terminateContract: PropTypes.func,
 }
