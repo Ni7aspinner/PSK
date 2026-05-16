@@ -6,17 +6,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
-import org.psk.contract.domain.ContractStatus;
+import org.psk.contract.ContractStatus;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.CreateContractRequest;
-import org.psk.contract.service.ContractService;
+import org.psk.contract.ContractService;
 import org.psk.security.jwt.JwtService;
 import org.psk.service.dto.CreateServiceRequest;
 import org.psk.service.dto.ServiceDto;
-import org.psk.service.service.ServiceManagementService;
+import org.psk.service.ServiceManagementService;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
-import org.psk.supplier.service.SupplierService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;

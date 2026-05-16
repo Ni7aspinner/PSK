@@ -1,9 +1,7 @@
-package org.psk.contract.service;
+package org.psk.contract;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.psk.contract.domain.Contract;
-import org.psk.contract.domain.ContractStatus;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.ContractMapper;
 import org.psk.contract.dto.CreateContractRequest;
@@ -11,11 +9,11 @@ import org.psk.contract.dto.UpdateContractRequest;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
-import org.psk.contract.repository.ContractRepository;
-import org.psk.service.repository.ServiceRepository;
-import org.psk.supplier.domain.Supplier;
+import org.psk.service.Service;
+import org.psk.service.ServiceRepository;
+import org.psk.supplier.Supplier;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
+import org.psk.supplier.SupplierRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
@@ -84,7 +82,7 @@ public class ContractService {
         contractRepository
             .findById(id)
             .orElseThrow(() -> new ContractNotFoundException("Contract not found with id: " + id));
-    List<org.psk.service.domain.Service> services = serviceRepository.findByContractId(id);
+    List<Service> services = serviceRepository.findByContractId(id);
     services.forEach(service -> service.setContract(null));
     serviceRepository.saveAll(services);
     contractRepository.delete(existing);

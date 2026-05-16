@@ -12,20 +12,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.psk.contract.domain.Contract;
+import org.psk.contract.Contract;
 import org.psk.contract.exception.ContractNotFoundException;
-import org.psk.contract.repository.ContractRepository;
-import org.psk.service.domain.Service;
+import org.psk.contract.ContractRepository;
+import org.psk.service.Service;
+import org.psk.service.ServiceManagementService;
 import org.psk.service.dto.CreateServiceRequest;
 import org.psk.service.dto.ServiceDto;
 import org.psk.service.dto.ServiceMapper;
 import org.psk.service.dto.UpdateServiceRequest;
 import org.psk.service.exception.ServiceContractSupplierMismatchException;
 import org.psk.service.exception.ServiceNotFoundException;
-import org.psk.service.repository.ServiceRepository;
-import org.psk.supplier.domain.Supplier;
+import org.psk.service.ServiceRepository;
+import org.psk.supplier.Supplier;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
+import org.psk.supplier.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ServiceManagementServiceTest {

@@ -1,4 +1,4 @@
-package org.psk.contract.domain;
+package org.psk.contract;
 
 public enum ContractStatus {
   ACTIVE,

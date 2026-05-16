@@ -1,4 +1,4 @@
-package org.psk.supplier.service;
+package org.psk.supplier;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -8,7 +8,6 @@ import org.psk.supplier.dto.SupplierMapper;
 import org.psk.supplier.dto.UpdateSupplierRequest;
 import org.psk.supplier.exception.DuplicateSupplierException;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

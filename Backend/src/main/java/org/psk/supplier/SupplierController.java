@@ -1,4 +1,4 @@
-package org.psk.supplier.web;
+package org.psk.supplier;
 
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
 import org.psk.supplier.dto.UpdateSupplierRequest;
-import org.psk.supplier.service.SupplierService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

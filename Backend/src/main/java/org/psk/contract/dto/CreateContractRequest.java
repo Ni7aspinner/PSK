@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.Data;
-import org.psk.contract.domain.ContractStatus;
+import org.psk.contract.ContractStatus;
 
 @Data
 public class CreateContractRequest {

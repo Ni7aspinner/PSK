@@ -1,4 +1,4 @@
-package org.psk.contract.web;
+package org.psk.contract;
 
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.CreateContractRequest;
 import org.psk.contract.dto.UpdateContractRequest;
-import org.psk.contract.service.ContractService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

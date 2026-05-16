@@ -1,4 +1,4 @@
-package org.psk.supplier.domain;
+package org.psk.supplier;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
@@ -12,8 +12,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.psk.contract.domain.Contract;
-import org.psk.service.domain.Service;
+import org.psk.contract.Contract;
+import org.psk.service.Service;
 
 @Entity
 @Table(name = "supplier")

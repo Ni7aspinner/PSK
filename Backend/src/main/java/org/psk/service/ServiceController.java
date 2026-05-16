@@ -1,4 +1,4 @@
-package org.psk.service.web;
+package org.psk.service;
 
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.psk.service.dto.CreateServiceRequest;
 import org.psk.service.dto.ServiceDto;
 import org.psk.service.dto.UpdateServiceRequest;
-import org.psk.service.service.ServiceManagementService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

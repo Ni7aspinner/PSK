@@ -13,14 +13,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.psk.supplier.domain.Supplier;
+import org.psk.supplier.Supplier;
+import org.psk.supplier.SupplierService;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
 import org.psk.supplier.dto.SupplierMapper;
 import org.psk.supplier.dto.UpdateSupplierRequest;
 import org.psk.supplier.exception.DuplicateSupplierException;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
+import org.psk.supplier.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class SupplierServiceTest {

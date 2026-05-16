@@ -1,7 +1,7 @@
-package org.psk.supplier.repository;
+package org.psk.supplier;
 
 import java.util.Optional;
-import org.psk.supplier.domain.Supplier;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {

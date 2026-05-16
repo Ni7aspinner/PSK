@@ -14,8 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.psk.contract.domain.Contract;
-import org.psk.contract.domain.ContractStatus;
+import org.psk.contract.Contract;
+import org.psk.contract.ContractService;
+import org.psk.contract.ContractStatus;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.ContractMapper;
 import org.psk.contract.dto.CreateContractRequest;
@@ -23,11 +24,11 @@ import org.psk.contract.dto.UpdateContractRequest;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
-import org.psk.contract.repository.ContractRepository;
-import org.psk.service.domain.Service;
-import org.psk.service.repository.ServiceRepository;
-import org.psk.supplier.domain.Supplier;
-import org.psk.supplier.repository.SupplierRepository;
+import org.psk.contract.ContractRepository;
+import org.psk.service.Service;
+import org.psk.service.ServiceRepository;
+import org.psk.supplier.Supplier;
+import org.psk.supplier.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ContractServiceTest {

@@ -1,7 +1,7 @@
-package org.psk.service.repository;
+package org.psk.service;
 
 import java.util.List;
-import org.psk.service.domain.Service;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ServiceRepository extends JpaRepository<Service, Long> {
