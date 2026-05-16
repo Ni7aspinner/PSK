@@ -9,9 +9,11 @@ describe('ResourceDetails', () => {
       contractNumber: 'C-001',
       endDate: '2026-12-31',
       startDate: '2026-01-01',
-      status: 'ACTIVE',
+      status: 'ACTIVE' as const,
+      supplierId: 1,
+      title: 'Support Agreement',
     }
-    const service = { id: 20, active: true, name: 'Helpdesk' }
+    const service = { id: 20, active: true, name: 'Helpdesk', supplierId: 1 }
 
     render(
       <ResourceDetails
@@ -22,7 +24,7 @@ describe('ResourceDetails', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /C-001/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Support Agreement/ }))
     fireEvent.click(screen.getByRole('button', { name: /Helpdesk/ }))
 
     expect(screen.getByRole('heading', { name: 'Acme' })).toBeInTheDocument()
@@ -32,8 +34,8 @@ describe('ResourceDetails', () => {
 
   it('renders contract supplier and linked services', () => {
     const onRelatedSelect = vi.fn()
-    const supplier = { id: 1, email: 'ops@acme.test', name: 'Acme', phone: '555-0100' }
-    const service = { id: 20, active: false, name: 'Archive' }
+    const supplier = { id: 1, email: 'ops@acme.test', name: 'Acme', phone: '555-0100', registrationCode: 'ACME-1' }
+    const service = { id: 20, active: false, name: 'Archive', supplierId: 1 }
 
     render(
       <ResourceDetails

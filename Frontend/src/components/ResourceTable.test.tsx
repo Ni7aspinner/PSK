@@ -7,9 +7,15 @@ describe('ResourceTable', () => {
     render(
       <ResourceTable
         busyAction=""
+        closeDetails={vi.fn()}
         config={resourceConfig.suppliers}
+        deleteItem={vi.fn()}
+        loadDetails={vi.fn()}
+        openEditModal={vi.fn()}
+        openRelatedDetails={vi.fn()}
         rows={[]}
         resourceKey="suppliers"
+        terminateContract={vi.fn()}
       />,
     )
 
@@ -23,7 +29,8 @@ describe('ResourceTable', () => {
       id: 10,
       servicesCount: 1,
       startDate: '2026-01-01',
-      status: 'ACTIVE',
+      status: 'ACTIVE' as const,
+      supplierId: 1,
       supplierName: 'Acme',
       title: 'Support Agreement',
     }
@@ -65,7 +72,7 @@ describe('ResourceTable', () => {
         closeDetails={closeDetails}
         config={resourceConfig.contracts}
         deleteItem={deleteItem}
-        expandedDetails={{ item: row, services: [], supplier: { id: 1, name: 'Acme' } }}
+        expandedDetails={{ item: row, services: [], supplier: { id: 1, name: 'Acme', registrationCode: 'ACME-1' } }}
         loadDetails={loadDetails}
         openEditModal={openEditModal}
         openRelatedDetails={openRelatedDetails}

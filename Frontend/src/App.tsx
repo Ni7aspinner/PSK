@@ -1,32 +1,45 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import './App.css'
 import heroMark from './assets/hero.png'
 import { backendApi } from './api/backendApi'
 import { AuthScreen } from './components/AuthScreen'
 import { Dashboard } from './components/Dashboard'
+import type { AuthMode, Session } from './models/resourceConfig'
 
 const SESSION_KEY = 'psk-session'
-const credentialsFrom = (form) => Object.fromEntries(new FormData(form).entries())
+
+const credentialsFrom = (form: HTMLFormElement) => {
+  const formData = new FormData(form)
+  const username = formData.get('username')
+  const password = formData.get('password')
+
+  return {
+    username: typeof username === 'string' ? username : '',
+    password: typeof password === 'string' ? password : '',
+  }
+}
 
 function App() {
-  const [session, setSession] = useState(() => JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null'))
-  const [authMode, setAuthMode] = useState('login')
+  const [session, setSession] = useState<Session | null>(() => JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null'))
+  const [authMode, setAuthMode] = useState<AuthMode>('login')
   const [registerSuccess, setRegisterSuccess] = useState('')
   const [authError, setAuthError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const submitAuth = async (event, mode) => {
+  const submitAuth = async (event: FormEvent<HTMLFormElement>, mode: AuthMode) => {
     event.preventDefault()
     setAuthError('')
     if (mode === 'register') setRegisterSuccess('')
     setLoading(true)
 
     try {
-      const result = await backendApi[mode](credentialsFrom(event.currentTarget))
+      const credentials = credentialsFrom(event.currentTarget)
       if (mode === 'login') {
+        const result = await backendApi.login(credentials)
         localStorage.setItem(SESSION_KEY, JSON.stringify(result))
         setSession(result)
       } else {
+        const result = await backendApi.register(credentials)
         setRegisterSuccess(`Registered ${result.username}. You can sign in now.`)
         setAuthMode('login')
       }
@@ -37,9 +50,6 @@ function App() {
       setLoading(false)
     }
   }
-
-  const signIn = (event) => submitAuth(event, 'login')
-  const register = (event) => submitAuth(event, 'register')
 
   const signOut = () => {
     localStorage.removeItem(SESSION_KEY)
@@ -55,8 +65,8 @@ function App() {
             setRegisterSuccess('')
             setAuthMode((mode) => (mode === 'login' ? 'register' : 'login'))
           },
-          register,
-          signIn,
+          register: (event) => submitAuth(event, 'register'),
+          signIn: (event) => submitAuth(event, 'login'),
         }}
         heroMark={heroMark}
         state={{ authError, authMode, loading, registerSuccess }}

@@ -1,6 +1,22 @@
-import PropTypes from 'prop-types'
+import type { FormEvent } from 'react'
+import type { AuthMode } from '../models/resourceConfig'
 
-function AuthScreen({ actions, heroMark, state }) {
+type AuthScreenProps = Readonly<{
+  actions: Readonly<{
+    changeAuthMode: () => void
+    register: (event: FormEvent<HTMLFormElement>) => void
+    signIn: (event: FormEvent<HTMLFormElement>) => void
+  }>
+  heroMark: string
+  state: Readonly<{
+    authError: string
+    authMode: AuthMode
+    loading: boolean
+    registerSuccess: string
+  }>
+}>
+
+function AuthScreen({ actions, heroMark, state }: Readonly<AuthScreenProps>) {
   const { authError, authMode, loading, registerSuccess } = state
   const { changeAuthMode, register, signIn } = actions
   const actionLabel = authMode === 'login' ? 'Sign in' : 'Register'
@@ -37,13 +53,7 @@ function AuthScreen({ actions, heroMark, state }) {
               </label>
               <label>
                 <span>New password</span>
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={6}
-                  required
-                />
+                <input name="password" type="password" autoComplete="new-password" minLength={6} required />
               </label>
             </>
           )}
@@ -59,21 +69,6 @@ function AuthScreen({ actions, heroMark, state }) {
       </section>
     </main>
   )
-}
-
-AuthScreen.propTypes = {
-  actions: PropTypes.shape({
-    changeAuthMode: PropTypes.func.isRequired,
-    register: PropTypes.func.isRequired,
-    signIn: PropTypes.func.isRequired,
-  }).isRequired,
-  heroMark: PropTypes.string.isRequired,
-  state: PropTypes.shape({
-    authError: PropTypes.string.isRequired,
-    authMode: PropTypes.oneOf(['login', 'register']).isRequired,
-    loading: PropTypes.bool.isRequired,
-    registerSuccess: PropTypes.string.isRequired,
-  }).isRequired,
 }
 
 export { AuthScreen }

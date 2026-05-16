@@ -13,12 +13,13 @@ vi.mock('./api/backendApi', () => ({
 }))
 
 const session = { role: 'ADMIN', token: 'jwt-token', username: 'ada' }
+const api = vi.mocked(backendApi)
 
 function mockDashboardResources() {
-  backendApi.getSuppliers.mockResolvedValue([
+  api.getSuppliers.mockResolvedValue([
     { id: 1, email: 'ops@acme.test', name: 'Acme', phone: '555-0100', registrationCode: 'ACME-1' },
   ])
-  backendApi.getContracts.mockResolvedValue([
+  api.getContracts.mockResolvedValue([
     {
       id: 10,
       contractNumber: 'C-001',
@@ -29,7 +30,7 @@ function mockDashboardResources() {
       title: 'Support Agreement',
     },
   ])
-  backendApi.getServices.mockResolvedValue([
+  api.getServices.mockResolvedValue([
     { id: 20, active: true, contractId: 10, description: '24/7 helpdesk', name: 'Helpdesk', supplierId: 1 },
   ])
 }
@@ -42,7 +43,7 @@ describe('App', () => {
   })
 
   it('signs in, stores the session, and renders dashboard resources', async () => {
-    backendApi.login.mockResolvedValue(session)
+    api.login.mockResolvedValue(session)
 
     render(<App />)
 
@@ -53,13 +54,13 @@ describe('App', () => {
     expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
     expect(await screen.findByText('Acme')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Suppliers 1/ })).toBeInTheDocument()
-    expect(JSON.parse(localStorage.getItem('psk-session'))).toEqual(session)
-    expect(backendApi.login).toHaveBeenCalledWith({ username: 'ada', password: 'secret' })
-    expect(backendApi.getSuppliers).toHaveBeenCalledWith(session)
+    expect(JSON.parse(localStorage.getItem('psk-session') ?? 'null')).toEqual(session)
+    expect(api.login).toHaveBeenCalledWith({ username: 'ada', password: 'secret' })
+    expect(api.getSuppliers).toHaveBeenCalledWith(session)
   })
 
   it('shows authentication errors without entering the dashboard', async () => {
-    backendApi.login.mockRejectedValue(new Error('Invalid credentials.'))
+    api.login.mockRejectedValue(new Error('Invalid credentials.'))
 
     render(<App />)
 
@@ -73,7 +74,7 @@ describe('App', () => {
   })
 
   it('registers a user, returns to sign in, and shows the success message', async () => {
-    backendApi.register.mockResolvedValue({ username: 'new-user' })
+    api.register.mockResolvedValue({ id: 7, username: 'new-user', role: 'USER', enabled: true, version: 1 })
 
     render(<App />)
 
@@ -84,7 +85,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
     expect(screen.getByText('Registered new-user. You can sign in now.')).toBeInTheDocument()
-    expect(backendApi.register).toHaveBeenCalledWith({ username: 'new-user', password: 'secret1' })
+    expect(api.register).toHaveBeenCalledWith({ username: 'new-user', password: 'secret1' })
   })
 
   it('loads the dashboard from a stored session and signs out', async () => {

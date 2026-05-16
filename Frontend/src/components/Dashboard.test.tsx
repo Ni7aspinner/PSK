@@ -20,6 +20,7 @@ vi.mock('../api/backendApi', () => ({
 }))
 
 const session = { role: 'ADMIN', token: 'jwt-token', username: 'ada' }
+const api = vi.mocked(backendApi)
 
 const supplier = {
   id: 1,
@@ -36,7 +37,7 @@ const contract = {
   endDate: '2026-12-31',
   serviceIds: [20],
   startDate: '2026-01-01',
-  status: 'ACTIVE',
+  status: 'ACTIVE' as const,
   supplierId: 1,
   title: 'Support Agreement',
 }
@@ -52,9 +53,9 @@ const service = {
 }
 
 function mockLoad() {
-  backendApi.getSuppliers.mockResolvedValue([supplier])
-  backendApi.getContracts.mockResolvedValue([contract])
-  backendApi.getServices.mockResolvedValue([service])
+  api.getSuppliers.mockResolvedValue([supplier])
+  api.getContracts.mockResolvedValue([contract])
+  api.getServices.mockResolvedValue([service])
 }
 
 describe('Dashboard', () => {
@@ -89,11 +90,11 @@ describe('Dashboard', () => {
       version: 1,
     }
 
-    backendApi.createSupplier.mockResolvedValue(newSupplier)
-    backendApi.updateSupplier.mockResolvedValue(updatedSupplier)
-    backendApi.getSupplier.mockResolvedValue(updatedSupplier)
-    backendApi.getSupplierServices.mockResolvedValue([service])
-    backendApi.deleteSupplier.mockResolvedValue(null)
+    api.createSupplier.mockResolvedValue(newSupplier)
+    api.updateSupplier.mockResolvedValue(updatedSupplier)
+    api.getSupplier.mockResolvedValue(updatedSupplier)
+    api.getSupplierServices.mockResolvedValue([service])
+    api.deleteSupplier.mockResolvedValue(null)
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
@@ -105,7 +106,7 @@ describe('Dashboard', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create supplier' }))
 
     expect(await screen.findByText('Beta')).toBeInTheDocument()
-    expect(backendApi.createSupplier).toHaveBeenCalledWith(session, {
+    expect(api.createSupplier).toHaveBeenCalledWith(session, {
       name: 'Beta',
       registrationCode: 'B-2',
     })
@@ -115,7 +116,7 @@ describe('Dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Update supplier' }))
 
     expect(await screen.findByText('Acme Updated')).toBeInTheDocument()
-    expect(backendApi.updateSupplier).toHaveBeenCalledWith(session, 1, {
+    expect(api.updateSupplier).toHaveBeenCalledWith(session, 1, {
       email: 'ops@acme.test',
       name: 'Acme Updated',
       phone: '555-0100',
@@ -127,19 +128,19 @@ describe('Dashboard', () => {
     expect(await screen.findByRole('heading', { name: 'Acme Updated' })).toBeInTheDocument()
     expect(screen.getByText('Related contracts')).toBeInTheDocument()
     expect(screen.getByText('Related services')).toBeInTheDocument()
-    expect(backendApi.getSupplier).toHaveBeenCalledWith(session, 1)
-    expect(backendApi.getSupplierServices).toHaveBeenCalledWith(session, 1)
+    expect(api.getSupplier).toHaveBeenCalledWith(session, 1)
+    expect(api.getSupplierServices).toHaveBeenCalledWith(session, 1)
 
     fireEvent.click(screen.getAllByTitle('Delete')[0])
 
     await waitFor(() => {
       expect(screen.queryByText('Acme Updated')).not.toBeInTheDocument()
     })
-    expect(backendApi.deleteSupplier).toHaveBeenCalledWith(session, 1)
+    expect(api.deleteSupplier).toHaveBeenCalledWith(session, 1)
   })
 
   it('terminates active contracts from the contracts table', async () => {
-    backendApi.terminateContract.mockResolvedValue({ id: 10, status: 'TERMINATED' })
+    api.terminateContract.mockResolvedValue({ ...contract, status: 'TERMINATED' })
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
@@ -154,13 +155,13 @@ describe('Dashboard', () => {
     await waitFor(() => {
       expect(within(table).getByText('TERMINATED')).toBeInTheDocument()
     })
-    expect(backendApi.terminateContract).toHaveBeenCalledWith(session, 10)
+    expect(api.terminateContract).toHaveBeenCalledWith(session, 10)
   })
 
   it('preserves inactive services when editing without changing status', async () => {
     const inactiveService = { ...service, active: false, name: 'Archive' }
-    backendApi.getServices.mockResolvedValue([inactiveService])
-    backendApi.updateService.mockResolvedValue(inactiveService)
+    api.getServices.mockResolvedValue([inactiveService])
+    api.updateService.mockResolvedValue(inactiveService)
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
@@ -170,19 +171,41 @@ describe('Dashboard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Update service' }))
 
     await waitFor(() => {
-      expect(backendApi.updateService).toHaveBeenCalledWith(session, 20, {
+      expect(api.updateService).toHaveBeenCalledWith(session, 20, {
         active: false,
-        contractId: '10',
+        contractId: 10,
         description: '24/7 helpdesk',
         name: 'Archive',
-        supplierId: '1',
+        supplierId: 1,
+        version: 2,
+      })
+    })
+  })
+
+  it('clears an optional service contract when editing', async () => {
+    api.updateService.mockResolvedValue({ ...service, contractId: null })
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    await screen.findByText('Acme')
+    fireEvent.click(screen.getByRole('button', { name: /Services 1/ }))
+    fireEvent.click(screen.getByTitle('Edit'))
+    fireEvent.change(screen.getByLabelText('Contract'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Update service' }))
+
+    await waitFor(() => {
+      expect(api.updateService).toHaveBeenCalledWith(session, 20, {
+        active: true,
+        description: '24/7 helpdesk',
+        name: 'Helpdesk',
+        supplierId: 1,
         version: 2,
       })
     })
   })
 
   it('shows a load error when resources cannot be fetched', async () => {
-    backendApi.getSuppliers.mockRejectedValue(new Error('Unable to reach API.'))
+    api.getSuppliers.mockRejectedValue(new Error('Unable to reach API.'))
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 

@@ -13,8 +13,18 @@ describe('FormModal', () => {
         config={resourceConfig.services}
         mode="create"
         resources={{
-          contracts: [{ id: 10, contractNumber: 'C-001', title: 'Support Agreement' }],
-          suppliers: [{ id: 1, name: 'Acme' }],
+          contracts: [
+            {
+              id: 10,
+              contractNumber: 'C-001',
+              endDate: '2026-12-31',
+              startDate: '2026-01-01',
+              status: 'ACTIVE',
+              supplierId: 1,
+              title: 'Support Agreement',
+            },
+          ],
+          suppliers: [{ id: 1, name: 'Acme', registrationCode: 'ACME-1' }],
         }}
         onClose={onClose}
         onSubmit={onSubmit}
