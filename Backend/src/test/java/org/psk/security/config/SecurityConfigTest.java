@@ -34,6 +34,18 @@ class SecurityConfigTest {
   }
 
   @Test
+  void getSwaggerAPIDocs_withoutToken_returns200() throws Exception {
+    mockMvc.perform(get("/v3/api-docs")).andExpect(status().isOk());
+  }
+
+  @Test
+  void getSwaggerUi_withoutToken_isAllowed() throws Exception {
+    mockMvc.perform(get("/swagger-ui.html")).andExpect(status().is3xxRedirection());
+
+    mockMvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
+  }
+
+  @Test
   void getAdminEndpoint_withUserRole_returns403() throws Exception {
     String token = jwtService.generateToken("user", "USER");
 
