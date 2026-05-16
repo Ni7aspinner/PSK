@@ -1,86 +1,69 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import './App.css'
-import { DataTable } from './components/DataTable'
-import { DataModel } from './models/dataModel'
-import {
-  buildTableData,
-  formatCellValue,
-} from './utils/modelUtils'
+import heroMark from './assets/hero.png'
+import { backendApi } from './api/backendApi'
+import { AuthScreen } from './components/AuthScreen'
+import { Dashboard } from './components/Dashboard'
+
+const SESSION_KEY = 'psk-session'
+const credentialsFrom = (form) => Object.fromEntries(new FormData(form).entries())
 
 function App() {
-  const [response, setResponse] = useState(null)
+  const [session, setSession] = useState(() => JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null'))
+  const [authMode, setAuthMode] = useState('login')
+  const [registerSuccess, setRegisterSuccess] = useState('')
+  const [authError, setAuthError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
-  const tableData = useMemo(
-    () => buildTableData(DataModel, response),
-    [response],
-  )
-
-  const fetchData = async () => {
+  const submitAuth = async (event, mode) => {
+    event.preventDefault()
+    setAuthError('')
+    if (mode === 'register') setRegisterSuccess('')
     setLoading(true)
-    setError('')
 
     try {
-      const response = await fetch(DataModel.path)
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`)
+      const result = await backendApi[mode](credentialsFrom(event.currentTarget))
+      if (mode === 'login') {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(result))
+        setSession(result)
+      } else {
+        setRegisterSuccess(`Registered ${result.username}. You can sign in now.`)
+        setAuthMode('login')
       }
-
-      const data = await response.json()
-      setResponse(data)
-    } catch (err) {
-      const details =
-        err instanceof Error
-          ? err.message
-          : 'Unknown error while loading data.'
-      setError(
-        err instanceof TypeError
-          ? `Cannot reach API getData.`
-          : details,
-      )
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : `Unable to ${mode === 'login' ? 'sign in' : 'register user'}.`)
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <main className="app-shell">
-      <header className="hero">
-        <h1 className="eyebrow">PSK projektas</h1>
-      </header>
+  const signIn = (event) => submitAuth(event, 'login')
+  const register = (event) => submitAuth(event, 'register')
 
-      <section className="panel">
-        <div className="result-box" role="tabpanel">
-          <div className="result-meta">
-            <span>Rows: {tableData.rowCount}</span>
-            <button
-              type="button"
-              className="fetch-button"
-              onClick={fetchData}
-              disabled={loading}
-            >
-              {loading ? 'Fetching...' : 'Fetch data'}
-            </button>
-          </div>
+  const signOut = () => {
+    localStorage.removeItem(SESSION_KEY)
+    setSession(null)
+  }
 
-          {loading && <p>Loading data...</p>}
+  if (!session) {
+    return (
+      <AuthScreen
+        actions={{
+          changeAuthMode: () => {
+            setAuthError('')
+            setRegisterSuccess('')
+            setAuthMode((mode) => (mode === 'login' ? 'register' : 'login'))
+          },
+          register,
+          signIn,
+        }}
+        heroMark={heroMark}
+        state={{ authError, authMode, loading, registerSuccess }}
+      />
+    )
+  }
 
-          {!loading && error && <p className="error-text">{error}</p>}
-
-          {!loading && !error && tableData.rowCount > 0 && (
-            <DataTable
-              tableData={tableData}
-              formatCellValue={formatCellValue}
-              rowKeyPrefix="data-row"
-            />
-          )}
-
-          {!loading && !error && tableData.rowCount === 0 && <p>No data loaded yet.</p>}
-        </div>
-      </section>
-    </main>
-  )
+  return <Dashboard session={session} onSignOut={signOut} />
 }
 
 export default App
