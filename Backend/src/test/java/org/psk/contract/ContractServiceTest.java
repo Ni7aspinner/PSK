@@ -1,4 +1,4 @@
-package org.psk.contract.service;
+package org.psk.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,10 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.psk.contract.Contract;
-import org.psk.contract.ContractRepository;
-import org.psk.contract.ContractService;
-import org.psk.contract.ContractStatus;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.ContractMapper;
 import org.psk.contract.dto.CreateContractRequest;

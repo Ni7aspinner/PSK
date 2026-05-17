@@ -1,4 +1,4 @@
-package org.psk.security.web;
+package org.psk.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,6 +18,7 @@ import org.psk.security.domain.AppUser;
 import org.psk.security.dto.UserMapper;
 import org.psk.security.jwt.JwtService;
 import org.psk.security.repository.AppUserRepository;
+import org.psk.security.web.AuthController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;

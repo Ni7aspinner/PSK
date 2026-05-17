@@ -1,4 +1,4 @@
-package org.psk.security.config;
+package org.psk.security;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;

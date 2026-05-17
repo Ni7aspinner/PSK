@@ -1,13 +1,10 @@
-package org.psk.contract.repository;
+package org.psk.contract;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.psk.contract.Contract;
-import org.psk.contract.ContractRepository;
-import org.psk.contract.ContractStatus;
 import org.psk.supplier.Supplier;
 import org.psk.supplier.SupplierRepository;
 import org.springframework.beans.factory.annotation.Autowired;

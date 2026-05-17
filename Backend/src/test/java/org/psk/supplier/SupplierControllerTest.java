@@ -1,4 +1,4 @@
-package org.psk.supplier.web;
+package org.psk.supplier;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -21,8 +21,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.psk.common.exception.GlobalExceptionHandler;
-import org.psk.supplier.SupplierController;
-import org.psk.supplier.SupplierService;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
 import org.psk.supplier.dto.UpdateSupplierRequest;

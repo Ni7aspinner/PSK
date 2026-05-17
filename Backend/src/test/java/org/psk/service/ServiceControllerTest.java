@@ -1,4 +1,4 @@
-package org.psk.service.web;
+package org.psk.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -16,8 +16,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.psk.common.exception.GlobalExceptionHandler;
 import org.psk.security.jwt.JwtService;
-import org.psk.service.ServiceController;
-import org.psk.service.ServiceManagementService;
 import org.psk.service.dto.CreateServiceRequest;
 import org.psk.service.dto.ServiceDto;
 import org.psk.service.dto.UpdateServiceRequest;

@@ -1,4 +1,4 @@
-package org.psk.service.service;
+package org.psk.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -15,9 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.psk.contract.Contract;
 import org.psk.contract.ContractRepository;
 import org.psk.contract.exception.ContractNotFoundException;
-import org.psk.service.Service;
-import org.psk.service.ServiceManagementService;
-import org.psk.service.ServiceRepository;
 import org.psk.service.dto.CreateServiceRequest;
 import org.psk.service.dto.ServiceDto;
 import org.psk.service.dto.ServiceMapper;

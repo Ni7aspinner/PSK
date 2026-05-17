@@ -1,4 +1,4 @@
-package org.psk.contract.web;
+package org.psk.contract;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -16,9 +16,6 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.psk.common.exception.GlobalExceptionHandler;
-import org.psk.contract.ContractController;
-import org.psk.contract.ContractService;
-import org.psk.contract.ContractStatus;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.CreateContractRequest;
 import org.psk.contract.dto.UpdateContractRequest;

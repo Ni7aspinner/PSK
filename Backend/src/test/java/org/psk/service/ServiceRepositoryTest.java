@@ -1,4 +1,4 @@
-package org.psk.service.repository;
+package org.psk.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -8,8 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.psk.contract.Contract;
 import org.psk.contract.ContractRepository;
 import org.psk.contract.ContractStatus;
-import org.psk.service.Service;
-import org.psk.service.ServiceRepository;
 import org.psk.supplier.Supplier;
 import org.psk.supplier.SupplierRepository;
 import org.springframework.beans.factory.annotation.Autowired;
