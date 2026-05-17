@@ -1,8 +1,8 @@
 package org.psk.service.dto;
 
-import org.psk.contract.domain.Contract;
-import org.psk.service.domain.Service;
-import org.psk.supplier.domain.Supplier;
+import org.psk.contract.Contract;
+import org.psk.service.Service;
+import org.psk.supplier.Supplier;
 import org.springframework.stereotype.Component;
 
 @Component
