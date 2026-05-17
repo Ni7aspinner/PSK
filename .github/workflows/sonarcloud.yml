@@ -42,6 +42,9 @@ jobs:
         working-directory: Frontend
         run: npm run test:coverage
 
+      - name: Normalize frontend LCOV paths
+        run: sed -i 's#^SF:src/#SF:Frontend/src/#' Frontend/coverage/lcov.info
+
       - name: Build frontend
         working-directory: Frontend
         run: npm run build
@@ -111,7 +114,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-sonar-artifacts
-          path: .
+          path: Frontend/coverage
 
       - name: Debug downloaded artifacts
         run: |
@@ -121,6 +124,9 @@ jobs:
           ls -la Backend/target || true
           echo "=== CLASSES ==="
           ls -la Backend/target/classes || true
+          echo "=== FRONTEND COVERAGE ==="
+          ls -la Frontend/coverage || true
+          grep -m 5 '^SF:' Frontend/coverage/lcov.info || true
 
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@v6
