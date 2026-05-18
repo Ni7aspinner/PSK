@@ -2,6 +2,7 @@
 Backend/target/
 
 # Frontend build output and dependencies
+Frontend/coverage/
 Frontend/dist/
 Frontend/node_modules/
 
@@ -18,7 +19,7 @@ Frontend/node_modules/
 
 # OS files
 .DS_Store
-
-# Local tool settings
 .claude/
+.codex/
+AGENTS.md
 notify-codex-finished.ps1
