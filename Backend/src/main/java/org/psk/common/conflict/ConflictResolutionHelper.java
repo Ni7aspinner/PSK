@@ -16,6 +16,12 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ConflictResolutionHelper {
 
+  private static final String UNKNOWN = "Unknown";
+  private static final String SUPPLIER = "Supplier";
+  private static final String SERVICE = "Service";
+  private static final String CONTRACT = "Contract";
+  private static final String CONTACT = "Contact";
+
   private final SupplierRepository supplierRepository;
   private final SupplierMapper supplierMapper;
   private final ServiceRepository serviceRepository;
@@ -30,12 +36,12 @@ public class ConflictResolutionHelper {
       return null;
     }
     return switch (normalizeEntityType(entityType)) {
-      case "Supplier" ->
+      case SUPPLIER ->
           supplierRepository.findById(entityId).map(supplierMapper::toDto).orElse(null);
-      case "Service" -> serviceRepository.findById(entityId).map(serviceMapper::toDto).orElse(null);
-      case "Contract" ->
+      case SERVICE -> serviceRepository.findById(entityId).map(serviceMapper::toDto).orElse(null);
+      case CONTRACT ->
           contractRepository.findById(entityId).map(contractMapper::toDto).orElse(null);
-      case "Contact" -> contactRepository.findById(entityId).map(contactMapper::toDto).orElse(null);
+      case CONTACT -> contactRepository.findById(entityId).map(contactMapper::toDto).orElse(null);
       default -> null;
     };
   }
@@ -55,19 +61,19 @@ public class ConflictResolutionHelper {
 
   public String normalizeEntityType(String entityType) {
     if (entityType == null || entityType.isBlank()) {
-      return "Unknown";
+      return UNKNOWN;
     }
-    if (entityType.endsWith("Supplier")) {
-      return "Supplier";
+    if (entityType.endsWith(SUPPLIER)) {
+      return SUPPLIER;
     }
-    if (entityType.endsWith("Service")) {
-      return "Service";
+    if (entityType.endsWith(SERVICE)) {
+      return SERVICE;
     }
-    if (entityType.endsWith("Contract")) {
-      return "Contract";
+    if (entityType.endsWith(CONTRACT)) {
+      return CONTRACT;
     }
-    if (entityType.endsWith("Contact")) {
-      return "Contact";
+    if (entityType.endsWith(CONTACT)) {
+      return CONTACT;
     }
     return entityType.contains(".")
         ? entityType.substring(entityType.lastIndexOf('.') + 1)
