@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.psk.contract.domain.ContractStatus;
+import org.psk.contract.ContractStatus;
 
 @Data
 @Builder
