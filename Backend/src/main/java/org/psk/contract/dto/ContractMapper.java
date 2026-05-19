@@ -2,10 +2,10 @@ package org.psk.contract.dto;
 
 import java.util.Comparator;
 import java.util.List;
-import org.psk.contract.domain.Contract;
-import org.psk.contract.domain.ContractStatus;
-import org.psk.service.domain.Service;
-import org.psk.supplier.domain.Supplier;
+import org.psk.contract.Contract;
+import org.psk.contract.ContractStatus;
+import org.psk.service.Service;
+import org.psk.supplier.Supplier;
 import org.springframework.stereotype.Component;
 
 @Component
