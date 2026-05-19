@@ -19,8 +19,8 @@ import org.psk.contact.dto.CreateContactRequest;
 import org.psk.contact.dto.UpdateContactRequest;
 import org.psk.contact.exception.ContactNotFoundException;
 import org.psk.supplier.Supplier;
-import org.psk.supplier.exception.SupplierNotFoundException;
 import org.psk.supplier.SupplierRepository;
+import org.psk.supplier.exception.SupplierNotFoundException;
 
 @ExtendWith(MockitoExtension.class)
 class ContactServiceTest {
