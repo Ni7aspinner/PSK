@@ -2,14 +2,14 @@ package org.psk.common.conflict;
 
 import java.lang.reflect.Method;
 import lombok.RequiredArgsConstructor;
+import org.psk.contact.ContactRepository;
 import org.psk.contact.dto.ContactMapper;
-import org.psk.contact.repository.ContactRepository;
+import org.psk.contract.ContractRepository;
 import org.psk.contract.dto.ContractMapper;
-import org.psk.contract.repository.ContractRepository;
+import org.psk.service.ServiceRepository;
 import org.psk.service.dto.ServiceMapper;
-import org.psk.service.repository.ServiceRepository;
+import org.psk.supplier.SupplierRepository;
 import org.psk.supplier.dto.SupplierMapper;
-import org.psk.supplier.repository.SupplierRepository;
 import org.springframework.stereotype.Component;
 
 @Component

@@ -1,22 +1,21 @@
-package org.psk.service.service;
+package org.psk.service;
 
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.psk.common.conflict.OptimisticLockConflictException;
-import org.psk.contract.domain.Contract;
+import org.psk.contract.Contract;
+import org.psk.contract.ContractRepository;
 import org.psk.contract.exception.ContractNotFoundException;
-import org.psk.contract.repository.ContractRepository;
 import org.psk.service.dto.CreateServiceRequest;
 import org.psk.service.dto.ServiceDto;
 import org.psk.service.dto.ServiceMapper;
 import org.psk.service.dto.UpdateServiceRequest;
 import org.psk.service.exception.ServiceContractSupplierMismatchException;
 import org.psk.service.exception.ServiceNotFoundException;
-import org.psk.service.repository.ServiceRepository;
-import org.psk.supplier.domain.Supplier;
+import org.psk.supplier.Supplier;
+import org.psk.supplier.SupplierRepository;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
@@ -57,7 +56,7 @@ public class ServiceManagementService {
 
   @Transactional
   public ServiceDto update(Long id, UpdateServiceRequest req) {
-    org.psk.service.domain.Service existing =
+    org.psk.service.Service existing =
         serviceRepository
             .findById(id)
             .orElseThrow(() -> new ServiceNotFoundException("Service not found with id: " + id));
@@ -70,7 +69,7 @@ public class ServiceManagementService {
 
   @Transactional
   public ServiceDto forceOverwrite(Long id, UpdateServiceRequest req) {
-    org.psk.service.domain.Service existing =
+    org.psk.service.Service existing =
         serviceRepository
             .findById(id)
             .orElseThrow(() -> new ServiceNotFoundException("Service not found with id: " + id));

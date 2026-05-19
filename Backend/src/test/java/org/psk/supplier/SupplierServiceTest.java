@@ -1,4 +1,4 @@
-package org.psk.supplier.service;
+package org.psk.supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,14 +14,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.psk.common.conflict.OptimisticLockConflictException;
-import org.psk.supplier.domain.Supplier;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.dto.SupplierDto;
 import org.psk.supplier.dto.SupplierMapper;
 import org.psk.supplier.dto.UpdateSupplierRequest;
 import org.psk.supplier.exception.DuplicateSupplierException;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class SupplierServiceTest {

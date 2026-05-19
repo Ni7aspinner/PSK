@@ -4,16 +4,14 @@ import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.psk.common.conflict.OptimisticLockConflictException;
-import org.psk.contact.Contact;
 import org.psk.contact.dto.ContactDto;
 import org.psk.contact.dto.ContactMapper;
 import org.psk.contact.dto.CreateContactRequest;
 import org.psk.contact.dto.UpdateContactRequest;
 import org.psk.contact.exception.ContactNotFoundException;
-import org.psk.contact.ContactRepository;
 import org.psk.supplier.Supplier;
-import org.psk.supplier.exception.SupplierNotFoundException;
 import org.psk.supplier.SupplierRepository;
+import org.psk.supplier.exception.SupplierNotFoundException;
 import org.springframework.transaction.annotation.Transactional;
 
 @org.springframework.stereotype.Service
@@ -103,16 +101,6 @@ public class ContactService {
         .findById(supplierId)
         .orElseThrow(
             () -> new SupplierNotFoundException("Supplier not found with id: " + supplierId));
-  }
-
-  private Contact requireContact(Long id) {
-    return contactRepository
-        .findById(id)
-        .orElseThrow(() -> new ContactNotFoundException(CONTACT_NOT_FOUND_WITH_ID + id));
-  }
-
-  private List<ContactDto> toDtos(List<Contact> contacts) {
-    return contacts.stream().map(contactMapper::toDto).toList();
   }
 
   private void ensureSupplierExists(Long supplierId) {

@@ -43,7 +43,7 @@ public class SupplierService {
 
   @Transactional
   public SupplierDto update(Long id, UpdateSupplierRequest req) {
-    org.psk.supplier.domain.Supplier supplier =
+    org.psk.supplier.Supplier supplier =
         supplierRepository
             .findById(id)
             .orElseThrow(() -> new SupplierNotFoundException("Supplier not found with id: " + id));
@@ -54,7 +54,7 @@ public class SupplierService {
 
   @Transactional
   public SupplierDto forceOverwrite(Long id, UpdateSupplierRequest req) {
-    org.psk.supplier.domain.Supplier supplier =
+    org.psk.supplier.Supplier supplier =
         supplierRepository
             .findById(id)
             .orElseThrow(() -> new SupplierNotFoundException("Supplier not found with id: " + id));

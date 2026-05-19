@@ -1,4 +1,4 @@
-package org.psk.contact.service;
+package org.psk.contact;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -14,16 +14,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.psk.common.conflict.OptimisticLockConflictException;
-import org.psk.contact.domain.Contact;
 import org.psk.contact.dto.ContactDto;
 import org.psk.contact.dto.ContactMapper;
 import org.psk.contact.dto.CreateContactRequest;
 import org.psk.contact.dto.UpdateContactRequest;
 import org.psk.contact.exception.ContactNotFoundException;
-import org.psk.contact.repository.ContactRepository;
-import org.psk.supplier.domain.Supplier;
+import org.psk.supplier.Supplier;
+import org.psk.supplier.SupplierRepository;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ContactServiceTest {
