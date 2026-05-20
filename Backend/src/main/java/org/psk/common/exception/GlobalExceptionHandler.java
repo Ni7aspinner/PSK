@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.psk.contact.exception.ContactNotFoundException;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
@@ -29,7 +30,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler({
     SupplierNotFoundException.class,
     ServiceNotFoundException.class,
-    ContractNotFoundException.class
+    ContractNotFoundException.class,
+    ContactNotFoundException.class
   })
   public ResponseEntity<Map<String, Object>> handleNotFound(
       RuntimeException ex, HttpServletRequest request) {
