@@ -1,6 +1,8 @@
 import {
   resourceConfig,
+  type Contact,
   type Contract,
+  type EnrichedContact,
   type ContractStatus,
   type EnrichedContract,
   type EnrichedService,
@@ -31,7 +33,7 @@ function normalizeFieldValue(field: FieldConfig, value: FormDataEntryValue | nul
     return value === '' || value === null ? null : Number(value)
   }
 
-  if (field.type === 'select' && field.name === 'active') {
+  if (field.type === 'select' && (field.name === 'active' || field.name === 'primary')) {
     return normalizeActiveValue(value)
   }
 
@@ -77,8 +79,11 @@ export const resourceValue = (item: ResourceItem, field: string): string | numbe
 
 export const isContractLike = (item: ResourceItem): item is Contract | EnrichedContract => 'contractNumber' in item
 
+export const isContactLike = (item: ResourceItem): item is Contact | EnrichedContact => 'firstName' in item && 'lastName' in item
+
 export const resourceLabel = (resourceKey: ResourceKey, item?: ResourceItem | null) => {
   if (!item) return '-'
+  if (resourceKey === 'contacts' && isContactLike(item)) return `${item.firstName} ${item.lastName}`.trim()
   if (resourceKey === 'contracts' && isContractLike(item)) return String(item.title ?? item.contractNumber ?? item.id)
   const primaryField = resourceConfig[resourceKey].primaryField
   return String(resourceValue(item, primaryField) ?? item.id)
@@ -93,16 +98,28 @@ export const servicesForContract = (services: Service[], contract: Contract) => 
 }
 
 export function getEnrichedRows(resourceKey: 'suppliers', resources: Resources): Supplier[]
+export function getEnrichedRows(resourceKey: 'contacts', resources: Resources): EnrichedContact[]
 export function getEnrichedRows(resourceKey: 'contracts', resources: Resources): EnrichedContract[]
 export function getEnrichedRows(resourceKey: 'services', resources: Resources): EnrichedService[]
 export function getEnrichedRows(
   resourceKey: ResourceKey,
   resources: Resources,
-): Supplier[] | EnrichedContract[] | EnrichedService[]
+): Supplier[] | EnrichedContact[] | EnrichedContract[] | EnrichedService[]
 export function getEnrichedRows(
   resourceKey: ResourceKey,
   resources: Resources,
-): Supplier[] | EnrichedContract[] | EnrichedService[] {
+): Supplier[] | EnrichedContact[] | EnrichedContract[] | EnrichedService[] {
+  if (resourceKey === 'contacts') {
+    const supMap = new Map(resources.suppliers.map((s) => [s.id, s.name]))
+    return resources.contacts.map(
+      (c): EnrichedContact => ({
+        ...c,
+        supplierName: supMap.get(c.supplierId) ?? 'Unknown Supplier',
+        primaryLabel: c.primary ? 'Primary' : 'Secondary',
+      }),
+    )
+  }
+
   if (resourceKey === 'contracts') {
     const supMap = new Map(resources.suppliers.map((s) => [s.id, s.name]))
     return resources.contracts.map((c) => ({

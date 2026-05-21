@@ -109,4 +109,38 @@ describe('backendApi', () => {
       method: 'POST',
     })
   })
+
+  it('calls contact relationship and primary action endpoints', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [{ id: 4, firstName: 'Ada', lastName: 'Lovelace', primary: false, supplierId: 9 }],
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 4, firstName: 'Ada', lastName: 'Lovelace', primary: true, supplierId: 9 }),
+      } as Response)
+
+    await expect(backendApi.getSupplierContacts({ token: 'jwt-token' }, 9)).resolves.toEqual([
+      { id: 4, firstName: 'Ada', lastName: 'Lovelace', primary: false, supplierId: 9 },
+    ])
+    await expect(backendApi.setPrimaryContact({ token: 'jwt-token' }, 4)).resolves.toMatchObject({
+      primary: true,
+    })
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/api/suppliers/9/contacts`, {
+      headers: {
+        Authorization: 'Bearer jwt-token',
+      },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/api/contacts/4/set-primary`, {
+      headers: {
+        Authorization: 'Bearer jwt-token',
+      },
+      method: 'PUT',
+    })
+  })
 })

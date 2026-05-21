@@ -4,6 +4,7 @@ describe('resourceConfig', () => {
   it('defines navigation for every configured resource in display order', () => {
     expect(navItems).toEqual([
       { key: 'suppliers', label: 'Suppliers' },
+      { key: 'contacts', label: 'Contacts' },
       { key: 'contracts', label: 'Contracts' },
       { key: 'services', label: 'Services' },
     ])
@@ -43,6 +44,11 @@ describe('resourceConfig', () => {
     })
     expect(resourceConfig.services.fields.find((field) => field.name === 'contractId')).toMatchObject({
       resourceTarget: 'contracts',
+      type: 'resourceSelect',
+    })
+    expect(resourceConfig.contacts.fields.find((field) => field.name === 'supplierId')).toMatchObject({
+      required: true,
+      resourceTarget: 'suppliers',
       type: 'resourceSelect',
     })
   })
