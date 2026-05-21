@@ -32,8 +32,8 @@ function App() {
       setSession(event.newValue ? JSON.parse(event.newValue) : null)
     }
 
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
+    globalThis.addEventListener('storage', onStorage)
+    return () => globalThis.removeEventListener('storage', onStorage)
   }, [])
 
   const submitAuth = async (event: FormEvent<HTMLFormElement>, mode: AuthMode) => {
