@@ -93,7 +93,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
 
     fireEvent(
-      globalThis,
+      window,
       new StorageEvent('storage', {
         key: 'psk-session',
         newValue: JSON.stringify(session),
@@ -109,7 +109,7 @@ describe('App', () => {
     expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
 
     fireEvent(
-      globalThis,
+      window,
       new StorageEvent('storage', {
         key: 'psk-session',
         newValue: null,
