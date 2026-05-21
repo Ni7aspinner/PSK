@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { AuthMode } from '../models/resourceConfig'
 import './LandingPage.css'
+import { ThemeToggle } from './ThemeToggle'
 
 type AuthScreenProps = Readonly<{
   actions: Readonly<{
@@ -211,9 +212,10 @@ function AuthScreen({ actions, heroMark, state }: Readonly<AuthScreenProps>) {
         <div className="landing-logo">
           <div className="landing-logo-icon">P</div>
           <span className="landing-logo-text">
-            PSK<span className="landing-logo-slash">//</span>KERNEL
+            PSK<span className="landing-logo-slash">{'//'}</span>KERNEL
           </span>
         </div>
+        <ThemeToggle />
       </header>
 
       <div className="landing-shell">
@@ -282,7 +284,7 @@ function AuthScreen({ actions, heroMark, state }: Readonly<AuthScreenProps>) {
                     {authMode === 'login' ? 'SECURE ENTRY PORTAL' : 'ACCOUNT CREATION'}
                   </span>
                 </div>
-                <h2 style={{ fontSize: '28px', fontWeight: 800, color: '#fafafa', margin: 0 }}>
+                <h2 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
                   {authMode === 'login' ? 'Sign in' : 'Register'}
                 </h2>
               </div>

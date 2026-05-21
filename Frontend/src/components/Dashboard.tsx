@@ -35,6 +35,7 @@ import {
 } from '../utils/dashboardUtils'
 import { ResourceTable } from './ResourceTable'
 import { FormModal } from './FormModal'
+import { ThemeToggle } from './ThemeToggle'
 
 type DashboardProps = Readonly<{
   session: Session
@@ -47,6 +48,20 @@ interface FormModalState {
 }
 
 const initialResources: Resources = { suppliers: [], contacts: [], contracts: [], services: [] }
+
+function searchableValue(value: unknown) {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value).toLowerCase()
+  }
+
+  return ''
+}
+
+function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
+  return contacts.map((row) =>
+    row.supplierId === primaryContact.supplierId ? { ...row, primary: row.id === primaryContact.id } : row,
+  )
+}
 
 function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const [activePage, setActivePage] = useState<ResourceKey>('suppliers')
@@ -75,10 +90,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     if (!searchQuery) return enrichedRows
     const q = searchQuery.toLowerCase()
     return enrichedRows.filter((row) => {
-      return Object.values(row).some((val) => {
-        if (val === null || val === undefined) return false
-        return String(val).toLowerCase().includes(q)
-      })
+      return Object.values(row).some((val) => searchableValue(val).includes(q))
     })
   }, [enrichedRows, searchQuery])
 
@@ -269,9 +281,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       const primaryContact = await backendApi.setPrimaryContact(session, contact.id)
       setResources((current) => ({
         ...current,
-        contacts: current.contacts.map((row) =>
-          row.supplierId === primaryContact.supplierId ? { ...row, primary: row.id === primaryContact.id } : row,
-        ),
+        contacts: updatePrimaryContacts(current.contacts, primaryContact),
       }))
       setSelected((current) => ({ ...current, contacts: primaryContact }))
       setExpandedDetails((current) =>
@@ -303,9 +313,12 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
               <h1>PSK projektas</h1>
             </div>
           </div>
-          <button type="button" className="link-action dashboard-signout" onClick={onSignOut}>
-            Sign out
-          </button>
+          <div className="dashboard-header-right">
+            <ThemeToggle />
+            <button type="button" className="link-action dashboard-signout" onClick={onSignOut}>
+              Sign out
+            </button>
+          </div>
         </header>
 
         <nav className="dashboard-nav" aria-label="Resource pages">
