@@ -1,7 +1,9 @@
 package org.psk.contract;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.psk.common.conflict.OptimisticLockConflictException;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.ContractMapper;
 import org.psk.contract.dto.CreateContractRequest;
@@ -9,7 +11,6 @@ import org.psk.contract.dto.UpdateContractRequest;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
-import org.psk.service.Service;
 import org.psk.service.ServiceRepository;
 import org.psk.supplier.Supplier;
 import org.psk.supplier.SupplierRepository;
@@ -57,6 +58,18 @@ public class ContractService {
 
   @Transactional
   public ContractDto update(Long id, UpdateContractRequest req) {
+    Contract existing =
+        contractRepository
+            .findById(id)
+            .orElseThrow(() -> new ContractNotFoundException("Contract not found with id: " + id));
+    ensureVersionMatches("Contract", id, existing.getVersion(), req.getVersion(), req);
+    validateDateRange(req.getStartDate(), req.getEndDate());
+    contractMapper.updateEntity(existing, req);
+    return contractMapper.toDto(contractRepository.save(existing));
+  }
+
+  @Transactional
+  public ContractDto forceOverwrite(Long id, UpdateContractRequest req) {
     validateDateRange(req.getStartDate(), req.getEndDate());
     Contract existing =
         contractRepository
@@ -82,7 +95,7 @@ public class ContractService {
         contractRepository
             .findById(id)
             .orElseThrow(() -> new ContractNotFoundException("Contract not found with id: " + id));
-    List<Service> services = serviceRepository.findByContractId(id);
+    List<org.psk.service.Service> services = serviceRepository.findByContractId(id);
     services.forEach(service -> service.setContract(null));
     serviceRepository.saveAll(services);
     contractRepository.delete(existing);
@@ -104,6 +117,18 @@ public class ContractService {
   private void validateDateRange(java.time.LocalDate startDate, java.time.LocalDate endDate) {
     if (startDate == null || endDate == null || !startDate.isBefore(endDate)) {
       throw new InvalidContractDateRangeException("Contract start date must be before end date");
+    }
+  }
+
+  private void ensureVersionMatches(
+      String entityType, Long entityId, Long currentVersion, Long submittedVersion, Object req) {
+    if (!Objects.equals(currentVersion, submittedVersion)) {
+      throw new OptimisticLockConflictException(
+          entityType,
+          entityId,
+          submittedVersion,
+          req,
+          entityType + " was modified by another user");
     }
   }
 }
