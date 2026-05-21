@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import './App.css'
 import heroMark from './assets/hero.png'
 import { backendApi } from './api/backendApi'
@@ -25,6 +25,16 @@ function App() {
   const [registerSuccess, setRegisterSuccess] = useState('')
   const [authError, setAuthError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== SESSION_KEY) return
+      setSession(event.newValue ? JSON.parse(event.newValue) : null)
+    }
+
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
 
   const submitAuth = async (event: FormEvent<HTMLFormElement>, mode: AuthMode) => {
     event.preventDefault()
