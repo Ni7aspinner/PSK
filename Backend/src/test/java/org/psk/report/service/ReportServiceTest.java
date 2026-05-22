@@ -10,15 +10,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.psk.contact.repository.ContactRepository;
-import org.psk.contract.domain.Contract;
-import org.psk.contract.domain.ContractStatus;
-import org.psk.contract.repository.ContractRepository;
+import org.psk.contact.ContactRepository;
+import org.psk.contract.Contract;
+import org.psk.contract.ContractRepository;
+import org.psk.contract.ContractStatus;
 import org.psk.report.dto.ActiveSupplierRow;
 import org.psk.report.dto.ActiveSuppliersReportDto;
-import org.psk.service.repository.ServiceRepository;
-import org.psk.supplier.domain.Supplier;
-import org.psk.supplier.repository.SupplierRepository;
+import org.psk.service.ServiceRepository;
+import org.psk.supplier.Supplier;
+import org.psk.supplier.SupplierRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -96,9 +96,9 @@ class ReportServiceTest {
     return contract;
   }
 
-  private org.psk.service.domain.Service service(
+  private org.psk.service.Service service(
       String name, Supplier supplier, Contract contract, boolean active) {
-    org.psk.service.domain.Service service = new org.psk.service.domain.Service();
+    org.psk.service.Service service = new org.psk.service.Service();
     service.setName(name);
     service.setDescription(name + " description");
     service.setSupplier(supplier);
