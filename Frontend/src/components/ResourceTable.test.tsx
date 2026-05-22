@@ -39,6 +39,7 @@ describe('ResourceTable', () => {
     const loadDetails = vi.fn()
     const closeDetails = vi.fn()
     const openEditModal = vi.fn()
+    const openCreateModal = vi.fn()
     const openRelatedDetails = vi.fn()
     const setPrimaryContact = vi.fn()
     const terminateContract = vi.fn()
@@ -50,6 +51,7 @@ describe('ResourceTable', () => {
         config={resourceConfig.contracts}
         deleteItem={deleteItem}
         loadDetails={loadDetails}
+        openCreateModal={openCreateModal}
         openEditModal={openEditModal}
         openRelatedDetails={openRelatedDetails}
         resourceKey="contracts"
@@ -77,6 +79,7 @@ describe('ResourceTable', () => {
         deleteItem={deleteItem}
         expandedDetails={{ item: row, services: [], supplier: { id: 1, name: 'Acme', registrationCode: 'ACME-1' } }}
         loadDetails={loadDetails}
+        openCreateModal={openCreateModal}
         openEditModal={openEditModal}
         openRelatedDetails={openRelatedDetails}
         resourceKey="contracts"
@@ -87,7 +90,9 @@ describe('ResourceTable', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { name: 'C-001' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Add service' }))
+    expect(screen.getByRole('heading', { name: 'Linked services' })).toBeInTheDocument()
+    expect(openCreateModal).toHaveBeenCalledWith('services', { contractId: 10, supplierId: 1 })
 
     fireEvent.click(screen.getByTitle('Collapse details'))
     expect(closeDetails).toHaveBeenCalledWith('contracts')
