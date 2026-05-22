@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
-import type { Contract, ResourceConfig, ResourceDetail, ResourceItem, ResourceKey } from '../models/resourceConfig'
-import { isContractLike, resourceValue } from '../utils/dashboardUtils'
+import type { Contact, Contract, ResourceConfig, ResourceDetail, ResourceItem, ResourceKey } from '../models/resourceConfig'
+import { isContactLike, isContractLike, resourceValue } from '../utils/dashboardUtils'
 import { formatCellValue } from '../utils/modelUtils'
 import { IconEdit, IconChevronDown, IconChevronUp, IconTrash, IconTerminate } from './Icons'
 import { ResourceDetails } from './ResourceDetails'
@@ -17,6 +17,7 @@ type ResourceTableProps = Readonly<{
   resourceKey: ResourceKey
   rows: ResourceItem[]
   selected?: ResourceItem | null
+  setPrimaryContact: (contact: Contact) => void
   terminateContract: (contract: Contract) => void
 }>
 
@@ -32,6 +33,7 @@ export function ResourceTable({
   resourceKey,
   rows,
   selected,
+  setPrimaryContact,
   terminateContract,
 }: Readonly<ResourceTableProps>) {
   if (rows.length === 0) return <p className="empty-state">No {config.title.toLowerCase()} found.</p>
@@ -76,6 +78,16 @@ export function ResourceTable({
                           onClick={() => terminateContract(row)}
                           title="Terminate Contract">
                           <IconTerminate />
+                        </button>
+                      )}
+
+                      {resourceKey === 'contacts' && isContactLike(row) && !row.primary && (
+                        <button
+                          type="button"
+                          className="table-action"
+                          onClick={() => setPrimaryContact(row)}
+                          title="Set Primary Contact">
+                          Primary
                         </button>
                       )}
 

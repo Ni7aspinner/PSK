@@ -1,5 +1,8 @@
 import type {
   AuthPayload,
+  Contact,
+  ContactCreatePayload,
+  ContactUpdatePayload,
   Contract,
   ContractCreatePayload,
   ContractUpdatePayload,
@@ -19,6 +22,8 @@ type JsonPayload =
   | AuthPayload
   | SupplierCreatePayload
   | SupplierUpdatePayload
+  | ContactCreatePayload
+  | ContactUpdatePayload
   | ContractCreatePayload
   | ContractUpdatePayload
   | ServiceCreatePayload
@@ -79,6 +84,13 @@ const backendApi = {
     request<Supplier>(`/api/suppliers/${id}`, session, withJsonBody('PUT', payload)),
   deleteSupplier: (session: Session, id: number) =>
     request<null>(`/api/suppliers/${id}`, session, { method: 'DELETE' }),
+  getContacts: (session: Session) => request<Contact[]>('/api/contacts', session),
+  getContact: (session: Session, id: number) => request<Contact>(`/api/contacts/${id}`, session),
+  createContact: (session: Session, payload: ContactCreatePayload) =>
+    request<Contact>('/api/contacts', session, withJsonBody('POST', payload)),
+  updateContact: (session: Session, id: number, payload: ContactUpdatePayload) =>
+    request<Contact>(`/api/contacts/${id}`, session, withJsonBody('PUT', payload)),
+  deleteContact: (session: Session, id: number) => request<null>(`/api/contacts/${id}`, session, { method: 'DELETE' }),
   getContracts: (session: Session) => request<Contract[]>('/api/contracts', session),
   getContract: (session: Session, id: number) => request<Contract>(`/api/contracts/${id}`, session),
   createContract: (session: Session, payload: ContractCreatePayload) =>
@@ -105,8 +117,12 @@ const backendApi = {
     ),
   getSupplierServices: (session: Session, supplierId: number) =>
     request<Service[]>(`/api/suppliers/${supplierId}/services`, session),
+  getSupplierContacts: (session: Session, supplierId: number) =>
+    request<Contact[]>(`/api/suppliers/${supplierId}/contacts`, session),
   terminateContract: (session: Session, id: number) =>
     request<Contract>(`/api/contracts/${id}/terminate`, session, { method: 'POST' }),
+  setPrimaryContact: (session: Session, id: number) =>
+    request<Contact>(`/api/contacts/${id}/set-primary`, session, { method: 'PUT' }),
 }
 
 export { API_BASE, backendApi }

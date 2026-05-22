@@ -15,6 +15,7 @@ describe('ResourceTable', () => {
         openRelatedDetails={vi.fn()}
         rows={[]}
         resourceKey="suppliers"
+        setPrimaryContact={vi.fn()}
         terminateContract={vi.fn()}
       />,
     )
@@ -39,6 +40,7 @@ describe('ResourceTable', () => {
     const closeDetails = vi.fn()
     const openEditModal = vi.fn()
     const openRelatedDetails = vi.fn()
+    const setPrimaryContact = vi.fn()
     const terminateContract = vi.fn()
 
     const { rerender } = render(
@@ -52,6 +54,7 @@ describe('ResourceTable', () => {
         openRelatedDetails={openRelatedDetails}
         resourceKey="contracts"
         rows={[row]}
+        setPrimaryContact={setPrimaryContact}
         terminateContract={terminateContract}
       />,
     )
@@ -79,6 +82,7 @@ describe('ResourceTable', () => {
         resourceKey="contracts"
         rows={[row]}
         selected={row}
+        setPrimaryContact={setPrimaryContact}
         terminateContract={terminateContract}
       />,
     )

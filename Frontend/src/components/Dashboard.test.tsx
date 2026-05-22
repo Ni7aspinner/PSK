@@ -4,16 +4,23 @@ import { backendApi } from '../api/backendApi'
 
 vi.mock('../api/backendApi', () => ({
   backendApi: {
+    createContact: vi.fn(),
     createSupplier: vi.fn(),
+    deleteContact: vi.fn(),
     deleteSupplier: vi.fn(),
+    getContact: vi.fn(),
+    getContacts: vi.fn(),
     getContract: vi.fn(),
     getContracts: vi.fn(),
     getService: vi.fn(),
     getServices: vi.fn(),
     getSupplier: vi.fn(),
+    getSupplierContacts: vi.fn(),
     getSupplierServices: vi.fn(),
     getSuppliers: vi.fn(),
+    setPrimaryContact: vi.fn(),
     terminateContract: vi.fn(),
+    updateContact: vi.fn(),
     updateService: vi.fn(),
     updateSupplier: vi.fn(),
   },
@@ -52,8 +59,21 @@ const service = {
   version: 2,
 }
 
+const contact = {
+  id: 30,
+  email: 'ada@acme.test',
+  firstName: 'Ada',
+  lastName: 'Lovelace',
+  phone: '555-0130',
+  position: 'Account Manager',
+  primary: false,
+  supplierId: 1,
+  version: 1,
+}
+
 function mockLoad() {
   api.getSuppliers.mockResolvedValue([supplier])
+  api.getContacts.mockResolvedValue([contact])
   api.getContracts.mockResolvedValue([contract])
   api.getServices.mockResolvedValue([service])
 }
@@ -69,6 +89,7 @@ describe('Dashboard', () => {
 
     expect(await screen.findByText('Acme')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Suppliers 1/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Contacts 1/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Contracts 1/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Services 1/ })).toBeInTheDocument()
 
@@ -93,6 +114,7 @@ describe('Dashboard', () => {
     api.createSupplier.mockResolvedValue(newSupplier)
     api.updateSupplier.mockResolvedValue(updatedSupplier)
     api.getSupplier.mockResolvedValue(updatedSupplier)
+    api.getSupplierContacts.mockResolvedValue([contact])
     api.getSupplierServices.mockResolvedValue([service])
     api.deleteSupplier.mockResolvedValue(null)
 
@@ -127,8 +149,10 @@ describe('Dashboard', () => {
 
     expect(await screen.findByRole('heading', { name: 'Acme Updated' })).toBeInTheDocument()
     expect(screen.getByText('Related contracts')).toBeInTheDocument()
+    expect(screen.getByText('Related contacts')).toBeInTheDocument()
     expect(screen.getByText('Related services')).toBeInTheDocument()
     expect(api.getSupplier).toHaveBeenCalledWith(session, 1)
+    expect(api.getSupplierContacts).toHaveBeenCalledWith(session, 1)
     expect(api.getSupplierServices).toHaveBeenCalledWith(session, 1)
 
     fireEvent.click(screen.getAllByTitle('Delete')[0])

@@ -4,6 +4,9 @@ import { backendApi } from '../api/backendApi'
 import {
   resourceConfig,
   navItems,
+  type Contact,
+  type ContactCreatePayload,
+  type ContactUpdatePayload,
   type Contract,
   type ContractCreatePayload,
   type ContractUpdatePayload,
@@ -32,6 +35,7 @@ import {
 } from '../utils/dashboardUtils'
 import { ResourceTable } from './ResourceTable'
 import { FormModal } from './FormModal'
+import { ThemeToggle } from './ThemeToggle'
 
 type DashboardProps = Readonly<{
   session: Session
@@ -43,7 +47,21 @@ interface FormModalState {
   resourceKey: ResourceKey
 }
 
-const initialResources: Resources = { suppliers: [], contracts: [], services: [] }
+const initialResources: Resources = { suppliers: [], contacts: [], contracts: [], services: [] }
+
+function searchableValue(value: unknown) {
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value).toLowerCase()
+  }
+
+  return ''
+}
+
+function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
+  return contacts.map((row) =>
+    row.supplierId === primaryContact.supplierId ? { ...row, primary: row.id === primaryContact.id } : row,
+  )
+}
 
 function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const [activePage, setActivePage] = useState<ResourceKey>('suppliers')
@@ -54,26 +72,44 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const [busyAction, setBusyAction] = useState('')
   const [error, setError] = useState('')
   const [formModal, setFormModal] = useState<FormModalState | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const counts = useMemo(
     () => ({
       suppliers: resources.suppliers.length,
+      contacts: resources.contacts.length,
       contracts: resources.contracts.length,
       services: resources.services.length,
     }),
     [resources],
   )
 
+  const enrichedRows = useMemo(() => getEnrichedRows(activePage, resources), [activePage, resources])
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery) return enrichedRows
+    const q = searchQuery.toLowerCase()
+    return enrichedRows.filter((row) => {
+      return Object.values(row).some((val) => searchableValue(val).includes(q))
+    })
+  }, [enrichedRows, searchQuery])
+
   const loadDashboard = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const [suppliers, contracts, services] = await Promise.all([
+      const [suppliers, contacts, contracts, services] = await Promise.all([
         backendApi.getSuppliers(session),
+        backendApi.getContacts(session),
         backendApi.getContracts(session),
         backendApi.getServices(session),
       ])
-      setResources({ suppliers: asRows(suppliers), contracts: asRows(contracts), services: asRows(services) })
+      setResources({
+        suppliers: asRows(suppliers),
+        contacts: asRows(contacts),
+        contracts: asRows(contracts),
+        services: asRows(services),
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load resources.')
     } finally {
@@ -111,6 +147,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
 
   const createResource = (resourceKey: ResourceKey, payload: ResourcePayload) => {
     if (resourceKey === 'suppliers') return backendApi.createSupplier(session, payload as SupplierCreatePayload)
+    if (resourceKey === 'contacts') return backendApi.createContact(session, payload as ContactCreatePayload)
     if (resourceKey === 'contracts') return backendApi.createContract(session, payload as ContractCreatePayload)
     return backendApi.createService(session, payload as ServiceCreatePayload)
   }
@@ -118,6 +155,8 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const updateResource = (resourceKey: ResourceKey, item: ResourceItem, payload: ResourcePayload) => {
     if (resourceKey === 'suppliers')
       return backendApi.updateSupplier(session, item.id, payload as SupplierUpdatePayload)
+    if (resourceKey === 'contacts')
+      return backendApi.updateContact(session, item.id, payload as ContactUpdatePayload)
     if (resourceKey === 'contracts')
       return backendApi.updateContract(session, item.id, payload as ContractUpdatePayload)
     return backendApi.updateService(session, item.id, payload as ServiceUpdatePayload)
@@ -125,12 +164,14 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
 
   const deleteResource = (resourceKey: ResourceKey, item: ResourceItem) => {
     if (resourceKey === 'suppliers') return backendApi.deleteSupplier(session, item.id)
+    if (resourceKey === 'contacts') return backendApi.deleteContact(session, item.id)
     if (resourceKey === 'contracts') return backendApi.deleteContract(session, item.id)
     return backendApi.deleteService(session, item.id)
   }
 
   const getResource = (resourceKey: ResourceKey, item: ResourceItem) => {
     if (resourceKey === 'suppliers') return backendApi.getSupplier(session, item.id)
+    if (resourceKey === 'contacts') return backendApi.getContact(session, item.id)
     if (resourceKey === 'contracts') return backendApi.getContract(session, item.id)
     return backendApi.getService(session, item.id)
   }
@@ -180,6 +221,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       await deleteResource(resourceKey, item)
       setResources((current) => {
         if (resourceKey === 'suppliers') return { ...current, suppliers: removeById(current.suppliers, item.id) }
+        if (resourceKey === 'contacts') return { ...current, contacts: removeById(current.contacts, item.id) }
         if (resourceKey === 'contracts') return { ...current, contracts: removeById(current.contracts, item.id) }
         return { ...current, services: removeById(current.services, item.id) }
       })
@@ -198,7 +240,11 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       if (resourceKey === 'suppliers') {
         const supplier = detail as Supplier
         nextDetail.contracts = contractsForSupplier(resources.contracts, supplier.id)
+        nextDetail.contacts = await backendApi.getSupplierContacts(session, detail.id)
         nextDetail.services = await backendApi.getSupplierServices(session, detail.id)
+      } else if (resourceKey === 'contacts') {
+        const contact = detail as Contact
+        nextDetail.supplier = resources.suppliers.find((s) => s.id === contact.supplierId)
       } else if (resourceKey === 'contracts') {
         const contract = detail as Contract
         nextDetail.supplier = resources.suppliers.find((s) => s.id === contract.supplierId)
@@ -230,6 +276,22 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     })
   }
 
+  const setPrimaryContact = (contact: Contact) => {
+    runAction(`primary-contact-${contact.id}`, async () => {
+      const primaryContact = await backendApi.setPrimaryContact(session, contact.id)
+      setResources((current) => ({
+        ...current,
+        contacts: updatePrimaryContacts(current.contacts, primaryContact),
+      }))
+      setSelected((current) => ({ ...current, contacts: primaryContact }))
+      setExpandedDetails((current) =>
+        current.contacts?.item?.id === primaryContact.id
+          ? { ...current, contacts: { ...current.contacts, item: primaryContact } }
+          : current,
+      )
+    })
+  }
+
   const openRelatedDetails = (resourceKey: ResourceKey, item: ResourceItem) => {
     setActivePage(resourceKey)
     loadDetails(resourceKey, item)
@@ -251,9 +313,12 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
               <h1>PSK projektas</h1>
             </div>
           </div>
-          <button type="button" className="link-action dashboard-signout" onClick={onSignOut}>
-            Sign out
-          </button>
+          <div className="dashboard-header-right">
+            <ThemeToggle />
+            <button type="button" className="link-action dashboard-signout" onClick={onSignOut}>
+              Sign out
+            </button>
+          </div>
         </header>
 
         <nav className="dashboard-nav" aria-label="Resource pages">
@@ -262,7 +327,10 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
               key={item.key}
               type="button"
               className={activePage === item.key ? 'nav-tab nav-tab-active' : 'nav-tab'}
-              onClick={() => setActivePage(item.key)}>
+              onClick={() => {
+                setActivePage(item.key)
+                setSearchQuery('')
+              }}>
               {item.label}
               <span>{counts[item.key]}</span>
             </button>
@@ -280,14 +348,23 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
             <div className="resource-heading">
               <div>
                 <p className="kicker">{config.title}</p>
-                <h2>{resources[activePage].length} records</h2>
+                <h2>{filteredRows.length} records</h2>
               </div>
-              <button
-                type="button"
-                className="primary-action resource-create"
-                onClick={() => openCreateModal(activePage)}>
-                Create {config.singular}
-              </button>
+              <div className="heading-actions">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder={`Search ${config.title.toLowerCase()}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="primary-action resource-create"
+                  onClick={() => openCreateModal(activePage)}>
+                  Create {config.singular}
+                </button>
+              </div>
             </div>
             <ResourceTable
               busyAction={busyAction}
@@ -299,8 +376,9 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
               openRelatedDetails={openRelatedDetails}
               openEditModal={openEditModal}
               resourceKey={activePage}
-              rows={getEnrichedRows(activePage, resources)}
+              rows={filteredRows}
               selected={selected[activePage]}
+              setPrimaryContact={setPrimaryContact}
               terminateContract={terminateContract}
             />
           </section>
