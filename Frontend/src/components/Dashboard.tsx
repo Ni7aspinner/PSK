@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import heroMark from '../assets/hero.png'
 import { backendApi } from '../api/backendApi'
 import {
@@ -82,6 +82,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const [formModal, setFormModal] = useState<FormModalState | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [reportSearchQuery, setReportSearchQuery] = useState('')
+  const reportRequestedRef = useRef(false)
 
   const activeResourceKey = activePage === 'reports' ? null : activePage
 
@@ -140,6 +141,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   }, [session])
 
   const loadActiveSuppliersReport = useCallback(async () => {
+    reportRequestedRef.current = true
     setReportLoading(true)
     setReportError('')
     try {
@@ -156,10 +158,10 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   }, [loadDashboard])
 
   useEffect(() => {
-    if (activePage === 'reports' && !activeSuppliersReport && !reportLoading) {
+    if (activePage === 'reports' && !reportRequestedRef.current) {
       loadActiveSuppliersReport()
     }
-  }, [activePage, activeSuppliersReport, loadActiveSuppliersReport, reportLoading])
+  }, [activePage, loadActiveSuppliersReport])
 
   const runAction = async (label: string, action: () => Promise<void>) => {
     setBusyAction(label)
