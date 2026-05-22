@@ -85,6 +85,11 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     loadDashboard()
   }, [loadDashboard])
 
+  useEffect(() => {
+    globalThis.addEventListener('focus', loadDashboard)
+    return () => globalThis.removeEventListener('focus', loadDashboard)
+  }, [loadDashboard])
+
   const runAction = async (label: string, action: () => Promise<void>) => {
     setBusyAction(label)
     setError('')

@@ -204,6 +204,20 @@ describe('Dashboard', () => {
     })
   })
 
+  it('refreshes data when the window gains focus', async () => {
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+    expect(await screen.findByText('Acme')).toBeInTheDocument()
+
+    const updatedSupplier = { ...supplier, name: 'Acme Refreshed' }
+    api.getSuppliers.mockResolvedValue([updatedSupplier])
+    api.getContracts.mockResolvedValue([contract])
+    api.getServices.mockResolvedValue([service])
+
+    fireEvent.focus(window)
+
+    expect(await screen.findByText('Acme Refreshed')).toBeInTheDocument()
+  })
+
   it('shows a load error when resources cannot be fetched', async () => {
     api.getSuppliers.mockRejectedValue(new Error('Unable to reach API.'))
 
