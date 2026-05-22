@@ -75,4 +75,25 @@ describe('AuthScreen', () => {
     expect(screen.getByText('Invalid credentials.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Working...' })).toBeDisabled()
   })
+
+  it('switches the sandbox preview tabs', () => {
+    renderAuthScreen()
+
+    expect(screen.getByText('Acme Corporation')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Contracts' }))
+    expect(screen.getByText('Support Agreement')).toBeInTheDocument()
+    expect(screen.getByText('Licensing SLA')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Contacts' }))
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+    expect(screen.getByText('Alice Johnson')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Services' }))
+    expect(screen.getByText('24/7 Helpdesk Support')).toBeInTheDocument()
+    expect(screen.getByText('Legacy Database Backup')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Suppliers' }))
+    expect(screen.getByText('Global Tech Solutions')).toBeInTheDocument()
+  })
 })

@@ -109,4 +109,155 @@ describe('backendApi', () => {
       method: 'POST',
     })
   })
+
+  it('calls contact relationship and primary action endpoints', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => [{ id: 4, firstName: 'Ada', lastName: 'Lovelace', primary: false, supplierId: 9 }],
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ id: 4, firstName: 'Ada', lastName: 'Lovelace', primary: true, supplierId: 9 }),
+      } as Response)
+
+    await expect(backendApi.getSupplierContacts({ token: 'jwt-token' }, 9)).resolves.toEqual([
+      { id: 4, firstName: 'Ada', lastName: 'Lovelace', primary: false, supplierId: 9 },
+    ])
+    await expect(backendApi.setPrimaryContact({ token: 'jwt-token' }, 4)).resolves.toMatchObject({
+      primary: true,
+    })
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/api/suppliers/9/contacts`, {
+      headers: {
+        Authorization: 'Bearer jwt-token',
+      },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/api/contacts/4/set-primary`, {
+      headers: {
+        Authorization: 'Bearer jwt-token',
+      },
+      method: 'PUT',
+    })
+  })
+
+  it('maps resource read, update, and delete helpers to their backend endpoints', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 7 }),
+    } as Response)
+    const session = { token: 'jwt-token' }
+
+    await backendApi.getSuppliers(session)
+    await backendApi.getSupplier(session, 7)
+    await backendApi.updateSupplier(session, 7, { name: 'Acme', version: 1 })
+    await backendApi.deleteSupplier(session, 7)
+    await backendApi.getContacts(session)
+    await backendApi.getContact(session, 7)
+    await backendApi.createContact(session, {
+      email: 'ada@example.test',
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      phone: '555-0100',
+      primary: false,
+      supplierId: 2,
+    })
+    await backendApi.updateContact(session, 7, {
+      email: 'ada@example.test',
+      firstName: 'Ada',
+      lastName: 'Byron',
+      phone: '555-0101',
+      primary: true,
+      supplierId: 2,
+      version: 1,
+    })
+    await backendApi.deleteContact(session, 7)
+    await backendApi.getContracts(session)
+    await backendApi.getContract(session, 7)
+    await backendApi.createContract(session, {
+      contractNumber: 'C-007',
+      endDate: '2026-12-31',
+      startDate: '2026-01-01',
+      status: 'ACTIVE',
+      supplierId: 2,
+      title: 'Support',
+    })
+    await backendApi.updateContract(session, 7, {
+      endDate: '2026-12-31',
+      startDate: '2026-01-01',
+      status: 'EXPIRED',
+      title: 'Support',
+      version: 1,
+    })
+    await backendApi.getServices(session)
+    await backendApi.getService(session, 7)
+    await backendApi.createService(session, { active: true, name: 'Helpdesk', supplierId: 2 })
+    await backendApi.updateService(session, 7, { active: false, name: 'Helpdesk', supplierId: 2, version: 1 })
+    await backendApi.deleteService(session, 7)
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/api/suppliers`, {
+      headers: { Authorization: 'Bearer jwt-token' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/api/suppliers/7`, {
+      headers: { Authorization: 'Bearer jwt-token' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${API_BASE}/api/suppliers/7`, {
+      body: JSON.stringify({ name: 'Acme', version: 1 }),
+      headers: { Authorization: 'Bearer jwt-token', 'Content-Type': 'application/json' },
+      method: 'PUT',
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${API_BASE}/api/suppliers/7`, {
+      headers: { Authorization: 'Bearer jwt-token' },
+      method: 'DELETE',
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(5, `${API_BASE}/api/contacts`, {
+      headers: { Authorization: 'Bearer jwt-token' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(6, `${API_BASE}/api/contacts/7`, {
+      headers: { Authorization: 'Bearer jwt-token' },
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(7, `${API_BASE}/api/contacts`, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(8, `${API_BASE}/api/contacts/7`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(9, `${API_BASE}/api/contacts/7`, expect.objectContaining({ method: 'DELETE' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(10, `${API_BASE}/api/contracts`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(11, `${API_BASE}/api/contracts/7`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(12, `${API_BASE}/api/contracts`, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(13, `${API_BASE}/api/contracts/7`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(14, `${API_BASE}/api/services`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(15, `${API_BASE}/api/services/7`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(16, `${API_BASE}/api/services`, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(17, `${API_BASE}/api/services/7`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(18, `${API_BASE}/api/services/7`, expect.objectContaining({ method: 'DELETE' }))
+  })
+
+  it('uses backend message, backend error, and request fallback for failed responses', async () => {
+    vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({ message: 'Supplier already exists.' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ error: 'Backend unavailable.' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => {
+          throw new Error('not json')
+        },
+      } as unknown as Response)
+
+    await expect(
+      backendApi.createSupplier({ token: 'jwt-token' }, { name: 'Acme', registrationCode: 'ACME-1' }),
+    ).rejects.toThrow('Supplier already exists.')
+    await expect(backendApi.getServices({ token: 'jwt-token' })).rejects.toThrow('Backend unavailable.')
+    await expect(backendApi.getContracts({ token: 'jwt-token' })).rejects.toThrow('Request failed: 503')
+  })
 })

@@ -35,6 +35,7 @@ export function ResourceDetails({ detail, onRelatedSelect, primary, resourceKey 
         </div>
       </div>
       {resourceKey === 'suppliers' && <SupplierDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
+      {resourceKey === 'contacts' && <ContactDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
       {resourceKey === 'contracts' && <ContractDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
       {resourceKey === 'services' && <ServiceDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
     </section>
@@ -82,6 +83,21 @@ function SupplierDetails({ detail, onRelatedSelect }: Readonly<DetailProps>) {
         )}
       />
       <RelatedList
+        title="Related contacts"
+        emptyLabel="No related contacts."
+        items={detail.contacts ?? []}
+        renderItem={(contact) => (
+          <li key={contact.id}>
+            <RelatedRecordButton
+              item={contact}
+              meta={[contact.position, contact.email, contact.phone].filter(Boolean).join(' · ')}
+              onRelatedSelect={onRelatedSelect}
+              resourceKey="contacts"
+            />
+          </li>
+        )}
+      />
+      <RelatedList
         title="Related services"
         emptyLabel="No related services."
         items={detail.services ?? []}
@@ -96,6 +112,26 @@ function SupplierDetails({ detail, onRelatedSelect }: Readonly<DetailProps>) {
           </li>
         )}
       />
+    </div>
+  )
+}
+
+function ContactDetails({ detail, onRelatedSelect }: Readonly<DetailProps>) {
+  return (
+    <div className="details-grid">
+      <div className="details-section">
+        <h4>Supplier</h4>
+        {detail.supplier ? (
+          <RelatedRecordButton
+            item={detail.supplier}
+            meta={[detail.supplier.email, detail.supplier.phone].filter(Boolean).join(' · ')}
+            onRelatedSelect={onRelatedSelect}
+            resourceKey="suppliers"
+          />
+        ) : (
+          <p className="details-empty">Unknown Supplier</p>
+        )}
+      </div>
     </div>
   )
 }

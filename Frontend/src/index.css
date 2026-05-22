@@ -1,23 +1,146 @@
+:root {
+  --canvas: #09090b;
+  --surface-1: #18181b;
+  --surface-2: #27272a;
+  --surface-3: #3f3f46;
+  --surface-4: #52525b;
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.15);
+  --hairline-tertiary: rgba(255, 255, 255, 0.04);
+  --ink: #fafafa;
+  --ink-muted: #a1a1aa;
+  --ink-subtle: #71717a;
+  --ink-tertiary: #52525b;
+
+  --primary: #fafafa;
+  --primary-hover: #ffffff;
+  --primary-focus: #fafafa;
+  --primary-surface: rgba(255, 255, 255, 0.05);
+
+  --ring: rgba(255, 255, 255, 0.15);
+  --overlay-bg: rgba(0, 0, 0, 0.75);
+  --glass-bg: rgba(20, 20, 23, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --grid-line: rgba(255, 255, 255, 0.015);
+
+  --semantic-success: #10b981;
+  --success-surface: rgba(16, 185, 129, 0.1);
+  --success-border: #166534;
+  --success-bg: #052e16;
+  --success-text: #bbf7d0;
+
+  --danger: #ef4444;
+  --danger-surface: rgba(239, 68, 68, 0.1);
+  --danger-border: #7f1d1d;
+  --danger-bg: #450a0a;
+  --danger-text: #fecaca;
+  --danger-text-muted: #fca5a5;
+
+  --warning: #f59e0b;
+  --warning-surface: rgba(245, 158, 11, 0.1);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --logo-filter: grayscale(1) brightness(1.8);
+}
+
+[data-theme="light"] {
+  --canvas: #f9fafb;
+  --surface-1: #ffffff;
+  --surface-2: #f3f4f6;
+  --surface-3: #e5e7eb;
+  --surface-4: #d1d5db;
+  --hairline: rgba(0, 0, 0, 0.08);
+  --hairline-strong: rgba(0, 0, 0, 0.15);
+  --hairline-tertiary: rgba(0, 0, 0, 0.04);
+  --ink: #111827;
+  --ink-muted: #4b5563;
+  --ink-subtle: #6b7280;
+  --ink-tertiary: #9ca3af;
+
+  --primary: #111827;
+  --primary-hover: #000000;
+  --primary-focus: #111827;
+  --primary-surface: rgba(0, 0, 0, 0.05);
+
+  --ring: rgba(0, 0, 0, 0.1);
+  --overlay-bg: rgba(255, 255, 255, 0.75);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --grid-line: rgba(0, 0, 0, 0.025);
+
+  --semantic-success: #10b981;
+  --success-surface: rgba(16, 185, 129, 0.1);
+  --success-border: #bbf7d0;
+  --success-bg: #f0fdf4;
+  --success-text: #166534;
+
+  --danger: #ef4444;
+  --danger-surface: rgba(239, 68, 68, 0.1);
+  --danger-border: #fecaca;
+  --danger-bg: #fef2f2;
+  --danger-text: #991b1b;
+  --danger-text-muted: var(--danger);
+
+  --warning: #d97706;
+  --warning-surface: rgba(217, 119, 6, 0.1);
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+  --shadow-modal: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  --logo-filter: grayscale(1) brightness(0.2);
+}
+
 body {
   margin: 0;
-  font-family:
-    'SF Pro Display',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--ink);
   background: var(--canvas);
   line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+*:focus {
+  outline: none !important;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary-focus) !important;
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary-focus) !important;
+  outline-offset: 2px;
+}
+
+::selection {
+  background-color: var(--primary) !important;
+  color: var(--canvas) !important;
+}
+
+::-moz-selection {
+  background-color: var(--primary) !important;
+  color: var(--canvas) !important;
 }
 
 h1,
@@ -37,5 +160,5 @@ p {
 }
 
 code {
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
