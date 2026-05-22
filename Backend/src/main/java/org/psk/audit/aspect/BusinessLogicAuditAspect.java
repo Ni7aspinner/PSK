@@ -31,7 +31,13 @@ public class BusinessLogicAuditAspect {
   private final AuditLogWriter auditLogWriter;
   private final AuditArgumentFormatter auditArgumentFormatter;
 
-  @Pointcut("execution(* org.psk..service..*(..)) && !execution(* org.psk.audit..*(..))")
+  @Pointcut(
+      "(execution(* org.psk..service..*(..))"
+          + " || execution(* org.psk.contact.*Service.*(..))"
+          + " || execution(* org.psk.contract.*Service.*(..))"
+          + " || execution(* org.psk.service.*Service.*(..))"
+          + " || execution(* org.psk.supplier.*Service.*(..)))"
+          + " && !execution(* org.psk.audit..*(..))")
   void businessLogic() {}
 
   @Around("businessLogic()")

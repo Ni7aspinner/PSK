@@ -10,10 +10,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.psk.audit.domain.AuditLog;
 import org.psk.audit.repository.AuditLogRepository;
+import org.psk.supplier.SupplierRepository;
+import org.psk.supplier.SupplierService;
 import org.psk.supplier.dto.CreateSupplierRequest;
 import org.psk.supplier.exception.SupplierNotFoundException;
-import org.psk.supplier.repository.SupplierRepository;
-import org.psk.supplier.service.SupplierService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -48,7 +48,7 @@ class BusinessLogicAuditAspectTest {
     supplierService.create(supplierRequest("Audited Supplier", "AUD-001"));
 
     AuditLog auditLog = awaitSingleAuditLog();
-    assertThat(auditLog.getClassName()).isEqualTo("org.psk.supplier.service.SupplierService");
+    assertThat(auditLog.getClassName()).isEqualTo("org.psk.supplier.SupplierService");
     assertThat(auditLog.getMethodName()).isEqualTo("create");
     assertThat(auditLog.getUsername()).isEqualTo("audit-user");
     assertThat(auditLog.getRoles()).isEqualTo("ROLE_USER");
@@ -66,7 +66,7 @@ class BusinessLogicAuditAspectTest {
         .isInstanceOf(SupplierNotFoundException.class);
 
     AuditLog auditLog = awaitSingleAuditLog();
-    assertThat(auditLog.getClassName()).isEqualTo("org.psk.supplier.service.SupplierService");
+    assertThat(auditLog.getClassName()).isEqualTo("org.psk.supplier.SupplierService");
     assertThat(auditLog.getMethodName()).isEqualTo("findById");
     assertThat(auditLog.getUsername()).isEqualTo("audit-user");
     assertThat(auditLog.getOutcome()).isEqualTo("FAILURE");
