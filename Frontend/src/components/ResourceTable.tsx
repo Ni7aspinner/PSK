@@ -1,5 +1,12 @@
 import { Fragment } from 'react'
-import type { Contact, Contract, ResourceConfig, ResourceDetail, ResourceItem, ResourceKey } from '../models/resourceConfig'
+import type {
+  Contact,
+  Contract,
+  ResourceConfig,
+  ResourceDetail,
+  ResourceItem,
+  ResourceKey,
+} from '../models/resourceConfig'
 import { isContactLike, isContractLike, resourceValue } from '../utils/dashboardUtils'
 import { formatCellValue } from '../utils/modelUtils'
 import { IconEdit, IconTrash, IconTerminate, IconPrimary, IconChevronDown, IconChevronUp } from './Icons'
@@ -13,19 +20,18 @@ type ResourceTableProps = Readonly<{
   emptyMessage?: string
   expandedDetails?: ResourceDetail | null
   loadDetails: (resourceKey: ResourceKey, item: ResourceItem) => void
-  closeDetails?: (resourceKey: ResourceKey) => void
+  closeDetails: (resourceKey: ResourceKey) => void
   openRelatedDetails: (resourceKey: ResourceKey, item: ResourceItem) => void
   openEditModal: (resourceKey: ResourceKey, item: ResourceItem) => void
-  openCreateModal?: (resourceKey: ResourceKey, defaultValues?: Record<string, unknown>) => void
   resourceKey: ResourceKey
   rows: ResourceItem[]
   selected?: ResourceItem | null
   setPrimaryContact: (contact: Contact) => void
   terminateContract: (contract: Contract) => void
-  isCompact?: boolean
 }>
 
 export function ResourceTable({
+  busyAction = '',
   config,
   columnKeys,
   deleteItem,
@@ -35,140 +41,100 @@ export function ResourceTable({
   closeDetails,
   openRelatedDetails,
   openEditModal,
-  openCreateModal,
   resourceKey,
   rows,
   selected,
   setPrimaryContact,
   terminateContract,
-  isCompact,
 }: Readonly<ResourceTableProps>) {
   if (rows.length === 0) return <p className="empty-state">{emptyMessage ?? `No ${config.title.toLowerCase()} found.`}</p>
 
-  const hideActions = isCompact && resourceKey === 'suppliers'
-  const displayColumns = config.columns.filter((col) =>
-    isCompact && resourceKey === 'suppliers' ? col.key === 'name' : !columnKeys || columnKeys.includes(col.key),
-  )
+  const displayColumns = config.columns.filter((col) => !columnKeys || columnKeys.includes(col.key))
   const canExpand = resourceKey === 'contracts' || resourceKey === 'services'
-  const isRowInteractive = resourceKey === 'suppliers' || canExpand
 
   return (
     <div className="table-wrap">
-      <table className={`data-table ${isCompact ? 'data-table-compact' : ''}`}>
+      <table className="data-table">
         <thead>
           <tr>
             {displayColumns.map((col) => (
               <th key={col.key}>{col.label}</th>
             ))}
-            {!hideActions && <th className="table-action-cell" aria-label="Row actions" />}
+            <th className="table-action-cell" aria-label="Row actions" />
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => {
             const isExpanded = expandedDetails?.item?.id === row.id
-            const activateRow = () => {
-              if (resourceKey === 'suppliers') {
-                openRelatedDetails(resourceKey, row)
-              } else if (canExpand && isExpanded) {
-                closeDetails?.(resourceKey)
-              } else if (canExpand) {
-                loadDetails(resourceKey, row)
-              }
-            }
+            const isDetailsLoading = busyAction === `details-${resourceKey}-${row.id}`
+            const activateRow = () => (isExpanded ? closeDetails(resourceKey) : loadDetails(resourceKey, row))
 
             return (
               <Fragment key={row.id}>
                 <tr
-                  className={`${selected?.id === row.id || isExpanded ? 'selected-row' : ''} ${isRowInteractive ? 'interactive-row' : ''}`}
-                  onClick={isRowInteractive ? activateRow : undefined}
+                  className={`${selected?.id === row.id || isExpanded ? 'selected-row' : ''} ${canExpand ? 'interactive-row' : ''}`}
+                  onClick={canExpand ? activateRow : undefined}
                 >
-                  {displayColumns.map((col, index) => {
+                  {displayColumns.map((col) => {
                     const value = formatCellValue(resourceValue(row, col.key))
-                    if (index === 0 && isRowInteractive) {
-                      return (
-                        <td key={col.key}>
-                          <button type="button" className="table-row-button">
-                            {value}
-                          </button>
-                        </td>
-                      )
-                    }
-
-                    if (col.key === 'supplierName') {
-                      return (
-                        <td key={col.key}>
-                          <button
-                            type="button"
-                            className="link-action table-link-action"
-                            onClick={() => {
-                              openRelatedDetails('suppliers', { id: (row as Record<string, unknown>).supplierId as number } as ResourceItem)
-                            }}
-                          >
-                            {value}
-                          </button>
-                        </td>
-                      )
-                    }
-
                     return <td key={col.key}>{value}</td>
                   })}
-                  {!hideActions && (
-                    <td className="table-action-cell">
-                      <div className="row-actions">
-                        <button type="button" className="table-action" onClick={() => {
+                  <td className="table-action-cell">
+                    <div className="row-actions">
+                      <button type="button" className="table-action" onClick={(event) => {
+                          event.stopPropagation()
                           openEditModal(resourceKey, row)
                         }} title="Edit">
-                          <IconEdit />
-                        </button>
+                        <IconEdit />
+                      </button>
 
-                        {resourceKey === 'contracts' && isContractLike(row) && row.status !== 'TERMINATED' && (
-                          <button type="button" className="table-action" onClick={() => {
+                      {resourceKey === 'contracts' && isContractLike(row) && row.status !== 'TERMINATED' && (
+                        <button type="button" className="table-action" onClick={(event) => {
+                            event.stopPropagation()
                             terminateContract(row)
                           }} title="Terminate Contract">
-                            <IconTerminate />
-                          </button>
-                        )}
+                          <IconTerminate />
+                        </button>
+                      )}
 
-                        {resourceKey === 'contacts' && isContactLike(row) && !row.primary && (
-                          <button type="button" className="table-action" onClick={() => {
+                      {resourceKey === 'contacts' && isContactLike(row) && !row.primary && (
+                        <button type="button" className="table-action" onClick={(event) => {
+                            event.stopPropagation()
                             setPrimaryContact(row)
                           }} title="Set Primary Contact">
-                            <IconPrimary />
-                          </button>
-                        )}
+                          <IconPrimary />
+                        </button>
+                      )}
 
-                        <button type="button" className="table-action table-action-danger" onClick={() => {
+                      <button type="button" className="table-action table-action-danger" onClick={(event) => {
+                          event.stopPropagation()
                           deleteItem(resourceKey, row)
                         }} title="Delete">
-                          <IconTrash />
-                        </button>
+                        <IconTrash />
+                      </button>
 
-                        {canExpand && (
-                          <button
-                            type="button"
-                            className="table-action"
-                            onClick={() => {
-                              if (isExpanded) {
-                                closeDetails?.(resourceKey)
-                              } else {
-                                loadDetails(resourceKey, row)
-                              }
-                            }}
-                            title={isExpanded ? 'Collapse details' : 'Expand details'}
-                          >
-                            {isExpanded ? <IconChevronUp /> : <IconChevronDown />}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  )}
+                      {canExpand && (
+                        <button
+                          type="button"
+                          className="table-action"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            activateRow()
+                          }}
+                          title={isExpanded ? 'Collapse details' : 'Expand details'}
+                          disabled={isDetailsLoading}
+                        >
+                          {isExpanded ? <IconChevronUp /> : <IconChevronDown />}
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
                 {canExpand && isExpanded && expandedDetails && (
                   <tr className="details-row">
                     <td colSpan={displayColumns.length + 1}>
                       <ResourceDetails
                         detail={expandedDetails}
-                        openCreateModal={openCreateModal}
                         onRelatedSelect={openRelatedDetails}
                         resourceKey={resourceKey}
                       />

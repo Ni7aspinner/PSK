@@ -710,13 +710,6 @@ select:disabled {
   padding-left: 6px !important;
   white-space: nowrap;
 }
-.table-link-action {
-  min-height: auto;
-  padding: 0;
-  border: none;
-  font: inherit;
-  text-align: left;
-}
 
 .table-row-button {
   min-height: auto;

@@ -14,6 +14,7 @@ import {
   type ResourceKey,
   type ResourceMode,
   type ResourcePayload,
+  type ResourceCreateDefaults,
   type Resources,
   type Service,
   type ServiceCreatePayload,
@@ -22,6 +23,7 @@ import {
   type Supplier,
   type SupplierCreatePayload,
   type SupplierUpdatePayload,
+  type WorkspaceResourceKey,
 } from '../models/resourceConfig'
 import {
   asRows,
@@ -35,6 +37,7 @@ import {
 import { ResourceTable } from './ResourceTable'
 import { FormModal } from './FormModal'
 import { ThemeToggle } from './ThemeToggle'
+import { SupplierList } from './SupplierList'
 
 type DashboardProps = Readonly<{
   session: Session
@@ -44,17 +47,16 @@ type DashboardProps = Readonly<{
 interface FormModalState {
   mode: ResourceMode
   resourceKey: ResourceKey
-  defaultValues?: Record<string, unknown>
+  defaultValues?: ResourceCreateDefaults
 }
 
 const initialResources: Resources = { suppliers: [], contacts: [], contracts: [], services: [] }
-type WorkspaceTab = 'contacts' | 'contracts' | 'services'
 const workspaceColumnKeys = {
   contacts: ['firstName', 'lastName', 'position', 'email', 'phone', 'primaryLabel'],
   contracts: ['contractNumber', 'title', 'startDate', 'endDate', 'status'],
   services: ['name', 'description', 'activeLabel'],
-} satisfies Record<WorkspaceTab, string[]>
-const workspaceTabs: WorkspaceTab[] = ['contacts', 'contracts', 'services']
+} satisfies Record<WorkspaceResourceKey, string[]>
+const workspaceTabs: WorkspaceResourceKey[] = ['contacts', 'contracts', 'services']
 
 function searchableValue(value: unknown) {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -70,8 +72,12 @@ function filterRows<T extends ResourceItem>(rows: T[], query: string) {
   return rows.filter((row) => Object.values(row).some((val) => searchableValue(val).includes(q)))
 }
 
-function isWorkspaceTab(resourceKey: ResourceKey): resourceKey is WorkspaceTab {
-  return workspaceTabs.includes(resourceKey as WorkspaceTab)
+function isWorkspaceTab(resourceKey: ResourceKey): resourceKey is WorkspaceResourceKey {
+  return workspaceTabs.includes(resourceKey as WorkspaceResourceKey)
+}
+
+function isSupplier(item: ResourceItem | null | undefined): item is Supplier {
+  return Boolean(item && 'registrationCode' in item)
 }
 
 function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
@@ -80,8 +86,17 @@ function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
   )
 }
 
+function replaceExpandedDetailItem(
+  details: Partial<Record<ResourceKey, ResourceDetail | null>>,
+  resourceKey: ResourceKey,
+  item: ResourceItem,
+) {
+  const detail = details[resourceKey]
+  return detail?.item?.id === item.id ? { ...details, [resourceKey]: { ...detail, item } } : details
+}
+
 function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('contacts')
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceResourceKey>('contacts')
   const [resources, setResources] = useState(initialResources)
   const [selected, setSelected] = useState<Partial<Record<ResourceKey, ResourceItem | null>>>({})
   const [expandedDetails, setExpandedDetails] = useState<Partial<Record<ResourceKey, ResourceDetail | null>>>({})
@@ -147,7 +162,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     })
   }
 
-  const openSupplierWorkspace = (supplier: Supplier, tab: WorkspaceTab = 'contacts') => {
+  const openSupplierWorkspace = (supplier: Supplier, tab: WorkspaceResourceKey = 'contacts') => {
     setSelected((current) => ({ ...current, suppliers: supplier }))
     setSearchQuery('')
     setWorkspaceSearchQuery('')
@@ -157,7 +172,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
 
   const closeFormModal = () => setFormModal(null)
 
-  const openCreateModal = (resourceKey: ResourceKey, defaultValues?: Record<string, unknown>) => {
+  const openCreateModal = (resourceKey: ResourceKey, defaultValues?: ResourceCreateDefaults) => {
     setSelected((current) => ({ ...current, [resourceKey]: null }))
     setFormModal({ mode: 'create', resourceKey, defaultValues })
   }
@@ -238,11 +253,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
         [resourceKey]: replaceById(current[resourceKey], updated),
       }))
       setSelected((current) => ({ ...current, [resourceKey]: updated }))
-      setExpandedDetails((current) =>
-        current[resourceKey]?.item?.id === updated.id
-          ? { ...current, [resourceKey]: { ...current[resourceKey], item: updated } }
-          : current,
-      )
+      setExpandedDetails((current) => replaceExpandedDetailItem(current, resourceKey, updated))
       closeFormModal()
     })
   }
@@ -268,12 +279,17 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       const detail = await getResource(resourceKey, item)
       const next: ResourceDetail = { item: detail }
       if (resourceKey !== 'suppliers') {
-        const anyItem = detail as Record<string, unknown>
-        next.supplier = resources.suppliers.find((s) => s.id === anyItem.supplierId)
-        if (resourceKey === 'contracts') {
-          next.services = servicesForContract(resources.services, detail as Contract)
-        } else if (resourceKey === 'services') {
-          next.contract = resources.contracts.find((c) => c.id === anyItem.contractId)
+        if (resourceKey === 'contacts') {
+          const contact = detail as Contact
+          next.supplier = resources.suppliers.find((s) => s.id === contact.supplierId)
+        } else if (resourceKey === 'contracts') {
+          const contract = detail as Contract
+          next.supplier = resources.suppliers.find((s) => s.id === contract.supplierId)
+          next.services = servicesForContract(resources.services, contract)
+        } else {
+          const service = detail as Service
+          next.supplier = resources.suppliers.find((s) => s.id === service.supplierId)
+          next.contract = resources.contracts.find((c) => c.id === service.contractId)
         }
       }
       setExpandedDetails((curr) => ({ ...curr, [resourceKey]: next }))
@@ -294,7 +310,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       const next = { ...contract, ...res, status: res?.status ?? 'TERMINATED' }
       setResources((curr) => ({ ...curr, contracts: replaceById(curr.contracts, next) }))
       setSelected((curr) => ({ ...curr, contracts: next }))
-      setExpandedDetails((curr) => curr.contracts?.item?.id === next.id ? { ...curr, contracts: { ...curr.contracts, item: next } } : curr)
+      setExpandedDetails((curr) => replaceExpandedDetailItem(curr, 'contracts', next))
     })
   }
 
@@ -304,13 +320,13 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       const update = (rows: Contact[]) => updatePrimaryContacts(rows, primary)
       setResources((curr) => ({ ...curr, contacts: update(curr.contacts) }))
       setSelected((curr) => ({ ...curr, contacts: primary }))
-      setExpandedDetails((curr) => curr.contacts?.item?.id === primary.id ? { ...curr, contacts: { ...curr.contacts, item: primary } } : curr)
+      setExpandedDetails((curr) => replaceExpandedDetailItem(curr, 'contacts', primary))
     })
   }
 
-  const selectedSupplier = selected.suppliers as Supplier | undefined
+  const selectedSupplier = isSupplier(selected.suppliers) ? selected.suppliers : undefined
 
-  const switchWorkspaceTab = (tab: WorkspaceTab, query = '') => {
+  const switchWorkspaceTab = (tab: WorkspaceResourceKey, query = '') => {
     setWorkspaceTab(tab)
     setWorkspaceSearchQuery(query)
   }
@@ -322,11 +338,12 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       } else {
         openSupplierWorkspace(resources.suppliers.find((s) => s.id === item.id) ?? (item as Supplier))
       }
-    } else {
-      if (isWorkspaceTab(resourceKey)) {
-        switchWorkspaceTab(resourceKey)
-        loadDetails(resourceKey, item)
-      }
+      return
+    }
+
+    if (isWorkspaceTab(resourceKey)) {
+      switchWorkspaceTab(resourceKey)
+      loadDetails(resourceKey, item)
     }
   }
 
@@ -340,10 +357,11 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     : []
   const filteredWorkspaceRows = filterRows(workspaceRows, workspaceSearchQuery)
 
-  const openSupplierCreateModal = (resourceKey: Exclude<ResourceKey, 'suppliers'>) =>
+  const openSupplierCreateModal = (resourceKey: WorkspaceResourceKey) =>
     selectedSupplier && openCreateModal(resourceKey, { supplierId: selectedSupplier.id })
 
   const tableActions = {
+    busyAction,
     deleteItem,
     loadDetails,
     closeDetails,
@@ -412,14 +430,14 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-                <ResourceTable
-                  {...tableActions}
+                <SupplierList
                   config={config}
-                  expandedDetails={expandedDetails.suppliers}
-                  resourceKey="suppliers"
-                  rows={filteredRows}
-                  selected={selected.suppliers}
                   isCompact={Boolean(selectedSupplier)}
+                  onDelete={(supplier) => deleteItem('suppliers', supplier)}
+                  onEdit={(supplier) => openEditModal('suppliers', supplier)}
+                  onSelect={(supplier) => openRelatedDetails('suppliers', supplier)}
+                  rows={filteredRows}
+                  selected={selectedSupplier}
                 />
               </div>
 
@@ -494,7 +512,6 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                         columnKeys={workspaceColumnKeys[workspaceTab]}
                         config={resourceConfig[workspaceTab]}
                         expandedDetails={expandedDetails[workspaceTab]}
-                        openCreateModal={openCreateModal}
                         resourceKey={workspaceTab}
                         rows={filteredWorkspaceRows}
                         selected={selected[workspaceTab]}

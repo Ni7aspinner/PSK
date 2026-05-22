@@ -33,8 +33,7 @@ describe('ResourceDetails', () => {
     expect(onRelatedSelect).toHaveBeenNthCalledWith(2, 'services', service)
   })
 
-  it('renders contract services and opens service creation with contract defaults', () => {
-    const openCreateModal = vi.fn()
+  it('renders contract supplier and linked services', () => {
     const onRelatedSelect = vi.fn()
     const contract = {
       id: 10,
@@ -49,33 +48,38 @@ describe('ResourceDetails', () => {
 
     render(
       <ResourceDetails
-        detail={{ item: contract, services: [service] }}
-        openCreateModal={openCreateModal}
+        detail={{ item: contract, services: [service], supplier: { id: 1, name: 'Acme', registrationCode: 'ACME-1' } }}
         onRelatedSelect={onRelatedSelect}
         resourceKey="contracts"
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add service' }))
+    fireEvent.click(screen.getByRole('button', { name: /Archive/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Acme/ }))
 
     expect(screen.getByRole('button', { name: /Archive/ })).toBeInTheDocument()
-    expect(openCreateModal).toHaveBeenCalledWith('services', { contractId: 10, supplierId: 1 })
+    expect(onRelatedSelect).toHaveBeenNthCalledWith(1, 'services', service)
+    expect(onRelatedSelect).toHaveBeenNthCalledWith(
+      2,
+      'suppliers',
+      expect.objectContaining({ id: 1, name: 'Acme' }),
+    )
   })
 
-  it('renders service contract fallback and opens contract creation with supplier defaults', () => {
-    const openCreateModal = vi.fn()
+  it('renders service supplier and contract fallback', () => {
     render(
       <ResourceDetails
-        detail={{ contract: null, item: { id: 20, active: true, name: 'Helpdesk', supplierId: 1 } }}
-        openCreateModal={openCreateModal}
+        detail={{
+          contract: null,
+          item: { id: 20, active: true, name: 'Helpdesk', supplierId: 1 },
+          supplier: { id: 1, name: 'Acme', registrationCode: 'ACME-1' },
+        }}
         onRelatedSelect={vi.fn()}
         resourceKey="services"
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add contract' }))
-
+    expect(screen.getByRole('button', { name: /Acme/ })).toBeInTheDocument()
     expect(screen.getByText('No assigned contract.')).toBeInTheDocument()
-    expect(openCreateModal).toHaveBeenCalledWith('contracts', { supplierId: 1 })
   })
 })

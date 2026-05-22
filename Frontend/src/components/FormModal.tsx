@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import {
   type FieldConfig,
   type ResourceConfig,
+  type ResourceCreateDefaults,
   type ResourceItem,
   type ResourceMode,
   type Resources,
@@ -14,7 +15,7 @@ type FormModalProps = Readonly<{
   item?: ResourceItem | null
   mode: ResourceMode
   resources?: Partial<Resources>
-  defaultValues?: Record<string, unknown>
+  defaultValues?: ResourceCreateDefaults
   onClose: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }>
@@ -23,11 +24,16 @@ function formControlValue(value: unknown) {
   return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''
 }
 
+function defaultFieldValue(defaultValues: ResourceCreateDefaults | undefined, fieldName: FieldConfig['name']) {
+  if (fieldName === 'supplierId' || fieldName === 'contractId') return defaultValues?.[fieldName]
+  return undefined
+}
+
 function renderFieldControl(
   field: FieldConfig,
   item: ResourceItem | null | undefined,
   resources: Partial<Resources> = {},
-  defaultValues?: Record<string, unknown>,
+  defaultValues?: ResourceCreateDefaults,
 ) {
   if (field.type === 'select') {
     const options = field.options ?? []
@@ -46,7 +52,7 @@ function renderFieldControl(
 
   if (field.type === 'resourceSelect' && field.resourceTarget) {
     const resourceTarget = field.resourceTarget
-    const defaultValue = formControlValue(defaultValues?.[field.name] ?? (item ? resourceValue(item, field.name) : undefined))
+    const defaultValue = formControlValue(defaultFieldValue(defaultValues, field.name) ?? (item ? resourceValue(item, field.name) : undefined))
     const isLocked = !item && defaultValues && field.name in defaultValues && defaultValue !== ''
 
     if (isLocked) {

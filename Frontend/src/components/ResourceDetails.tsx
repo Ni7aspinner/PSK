@@ -1,17 +1,15 @@
 import type { ReactNode } from 'react'
-import { type Contract, type ResourceDetail, type ResourceItem, type ResourceKey, type Service } from '../models/resourceConfig'
+import { type ResourceDetail, type ResourceItem, type ResourceKey } from '../models/resourceConfig'
 import { resourceLabel } from '../utils/dashboardUtils'
 
 type RelatedSelect = (resourceKey: ResourceKey, item: ResourceItem) => void
 type DetailProps = Readonly<{ detail: ResourceDetail; onRelatedSelect: RelatedSelect }>
 type ResourceDetailsProps = Readonly<
   DetailProps & {
-    openCreateModal?: (resourceKey: ResourceKey, defaultValues?: Record<string, unknown>) => void
     resourceKey: ResourceKey
   }
 >
 type RelatedListProps<T extends ResourceItem> = Readonly<{
-  action?: ReactNode
   emptyLabel: string
   items: T[]
   renderItem: (item: T) => ReactNode
@@ -26,7 +24,6 @@ type RelatedRecordButtonProps = Readonly<{
 
 export function ResourceDetails({
   detail,
-  openCreateModal,
   onRelatedSelect,
   resourceKey,
 }: Readonly<ResourceDetailsProps>) {
@@ -34,20 +31,8 @@ export function ResourceDetails({
     <section className="details-panel">
       {resourceKey === 'suppliers' && <SupplierDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
       {resourceKey === 'contacts' && <ContactDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
-      {resourceKey === 'contracts' && (
-        <ContractDetails
-          detail={detail}
-          openCreateModal={openCreateModal}
-          onRelatedSelect={onRelatedSelect}
-        />
-      )}
-      {resourceKey === 'services' && (
-        <ServiceDetails
-          detail={detail}
-          openCreateModal={openCreateModal}
-          onRelatedSelect={onRelatedSelect}
-        />
-      )}
+      {resourceKey === 'contracts' && <ContractDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
+      {resourceKey === 'services' && <ServiceDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
     </section>
   )
 }
@@ -61,19 +46,10 @@ function RelatedRecordButton({ item, meta, onRelatedSelect, resourceKey }: Relat
   )
 }
 
-function RelatedList<T extends ResourceItem>({
-  action,
-  emptyLabel,
-  items,
-  renderItem,
-  title,
-}: Readonly<RelatedListProps<T>>) {
+function RelatedList<T extends ResourceItem>({ emptyLabel, items, renderItem, title }: Readonly<RelatedListProps<T>>) {
   return (
     <div className="details-section">
-      <div className={action ? 'resource-heading workspace-section-heading' : undefined}>
-        <h4>{title}</h4>
-        {action}
-      </div>
+      <h4>{title}</h4>
       {items.length === 0 ? (
         <p className="details-empty">{emptyLabel}</p>
       ) : (
@@ -155,27 +131,23 @@ function ContactDetails({ detail, onRelatedSelect }: Readonly<DetailProps>) {
   )
 }
 
-function ContractDetails({
-  detail,
-  openCreateModal,
-  onRelatedSelect,
-}: Readonly<DetailProps & { openCreateModal?: (resourceKey: ResourceKey, defaultValues?: Record<string, unknown>) => void }>) {
-  const contract = detail.item as Contract | undefined
-
+function ContractDetails({ detail, onRelatedSelect }: Readonly<DetailProps>) {
   return (
     <div className="details-grid">
+      <div className="details-section">
+        <h4>Supplier</h4>
+        {detail.supplier ? (
+          <RelatedRecordButton
+            item={detail.supplier}
+            meta={[detail.supplier.email, detail.supplier.phone].filter(Boolean).join(' · ')}
+            onRelatedSelect={onRelatedSelect}
+            resourceKey="suppliers"
+          />
+        ) : (
+          <p className="details-empty">Unknown Supplier</p>
+        )}
+      </div>
       <RelatedList
-        action={
-          contract && (
-            <button
-              type="button"
-              className="primary-action"
-              onClick={() => openCreateModal?.('services', { contractId: contract.id, supplierId: contract.supplierId })}
-            >
-              Add service
-            </button>
-          )
-        }
         title="Linked services"
         emptyLabel="No linked services."
         items={detail.services ?? []}
@@ -194,28 +166,24 @@ function ContractDetails({
   )
 }
 
-function ServiceDetails({
-  detail,
-  openCreateModal,
-  onRelatedSelect,
-}: Readonly<DetailProps & { openCreateModal?: (resourceKey: ResourceKey, defaultValues?: Record<string, unknown>) => void }>) {
-  const service = detail.item as Service | undefined
-
+function ServiceDetails({ detail, onRelatedSelect }: Readonly<DetailProps>) {
   return (
     <div className="details-grid">
       <div className="details-section">
-        <div className="resource-heading workspace-section-heading">
-          <h4>Linked contract</h4>
-          {service && (
-            <button
-              type="button"
-              className="primary-action"
-              onClick={() => openCreateModal?.('contracts', { supplierId: service.supplierId })}
-            >
-              Add contract
-            </button>
-          )}
-        </div>
+        <h4>Supplier</h4>
+        {detail.supplier ? (
+          <RelatedRecordButton
+            item={detail.supplier}
+            meta={[detail.supplier.email, detail.supplier.phone].filter(Boolean).join(' · ')}
+            onRelatedSelect={onRelatedSelect}
+            resourceKey="suppliers"
+          />
+        ) : (
+          <p className="details-empty">Unknown Supplier</p>
+        )}
+      </div>
+      <div className="details-section">
+        <h4>Contract</h4>
         {detail.contract ? (
           <RelatedRecordButton
             item={detail.contract}

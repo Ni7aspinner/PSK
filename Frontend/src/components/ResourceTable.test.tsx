@@ -39,7 +39,6 @@ describe('ResourceTable', () => {
     const loadDetails = vi.fn()
     const closeDetails = vi.fn()
     const openEditModal = vi.fn()
-    const openCreateModal = vi.fn()
     const openRelatedDetails = vi.fn()
     const setPrimaryContact = vi.fn()
     const terminateContract = vi.fn()
@@ -51,7 +50,6 @@ describe('ResourceTable', () => {
         config={resourceConfig.contracts}
         deleteItem={deleteItem}
         loadDetails={loadDetails}
-        openCreateModal={openCreateModal}
         openEditModal={openEditModal}
         openRelatedDetails={openRelatedDetails}
         resourceKey="contracts"
@@ -79,7 +77,6 @@ describe('ResourceTable', () => {
         deleteItem={deleteItem}
         expandedDetails={{ item: row, services: [], supplier: { id: 1, name: 'Acme', registrationCode: 'ACME-1' } }}
         loadDetails={loadDetails}
-        openCreateModal={openCreateModal}
         openEditModal={openEditModal}
         openRelatedDetails={openRelatedDetails}
         resourceKey="contracts"
@@ -90,41 +87,43 @@ describe('ResourceTable', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add service' }))
     expect(screen.getByRole('heading', { name: 'Linked services' })).toBeInTheDocument()
-    expect(openCreateModal).toHaveBeenCalledWith('services', { contractId: 10, supplierId: 1 })
 
     fireEvent.click(screen.getByTitle('Collapse details'))
     expect(closeDetails).toHaveBeenCalledWith('contracts')
   })
 
-  it('opens a row through the native row action button', () => {
+  it('opens expandable rows through the row click target', () => {
     const row = {
-      id: 1,
-      email: 'ops@acme.test',
-      name: 'Acme',
-      phone: '555-0100',
-      registrationCode: 'ACME-1',
+      contractNumber: 'C-002',
+      endDate: '2026-12-31',
+      id: 11,
+      servicesCount: 0,
+      startDate: '2026-01-01',
+      status: 'ACTIVE' as const,
+      supplierId: 1,
+      supplierName: 'Acme',
+      title: 'Maintenance Agreement',
     }
-    const openRelatedDetails = vi.fn()
+    const loadDetails = vi.fn()
 
     render(
       <ResourceTable
         closeDetails={vi.fn()}
-        config={resourceConfig.suppliers}
+        config={resourceConfig.contracts}
         deleteItem={vi.fn()}
-        loadDetails={vi.fn()}
+        loadDetails={loadDetails}
         openEditModal={vi.fn()}
-        openRelatedDetails={openRelatedDetails}
+        openRelatedDetails={vi.fn()}
         rows={[row]}
-        resourceKey="suppliers"
+        resourceKey="contracts"
         setPrimaryContact={vi.fn()}
         terminateContract={vi.fn()}
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: /Acme/ }))
+    fireEvent.click(screen.getByRole('cell', { name: 'C-002' }))
 
-    expect(openRelatedDetails).toHaveBeenCalledWith('suppliers', row)
+    expect(loadDetails).toHaveBeenCalledWith('contracts', row)
   })
 })
