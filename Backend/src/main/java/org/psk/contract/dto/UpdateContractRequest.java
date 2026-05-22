@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.psk.common.conflict.ForceOverwriteRequest;
-import org.psk.contract.domain.ContractStatus;
+import org.psk.contract.ContractStatus;
 
 @Data
 @EqualsAndHashCode(callSuper = true)

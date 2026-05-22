@@ -9,21 +9,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.psk.contact.domain.Contact;
+import org.psk.contact.Contact;
+import org.psk.contact.ContactRepository;
 import org.psk.contact.dto.ContactDto;
 import org.psk.contact.dto.ContactMapper;
-import org.psk.contact.repository.ContactRepository;
-import org.psk.contract.domain.Contract;
+import org.psk.contract.Contract;
+import org.psk.contract.ContractRepository;
 import org.psk.contract.dto.ContractDto;
 import org.psk.contract.dto.ContractMapper;
-import org.psk.contract.repository.ContractRepository;
+import org.psk.service.ServiceRepository;
 import org.psk.service.dto.ServiceDto;
 import org.psk.service.dto.ServiceMapper;
-import org.psk.service.repository.ServiceRepository;
-import org.psk.supplier.domain.Supplier;
+import org.psk.supplier.Supplier;
+import org.psk.supplier.SupplierRepository;
 import org.psk.supplier.dto.SupplierDto;
 import org.psk.supplier.dto.SupplierMapper;
-import org.psk.supplier.repository.SupplierRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ConflictResolutionHelperTest {
@@ -56,7 +56,7 @@ class ConflictResolutionHelperTest {
   @Test
   void loadCurrentState_mapsKnownEntityTypesToDtos() {
     Supplier supplier = new Supplier();
-    org.psk.service.domain.Service service = new org.psk.service.domain.Service();
+    org.psk.service.Service service = new org.psk.service.Service();
     Contract contract = new Contract();
     Contact contact = new Contact();
     SupplierDto supplierDto = SupplierDto.builder().id(1L).version(11L).build();

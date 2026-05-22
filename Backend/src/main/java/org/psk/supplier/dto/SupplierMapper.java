@@ -1,6 +1,6 @@
 package org.psk.supplier.dto;
 
-import org.psk.supplier.domain.Supplier;
+import org.psk.supplier.Supplier;
 import org.springframework.stereotype.Component;
 
 @Component
