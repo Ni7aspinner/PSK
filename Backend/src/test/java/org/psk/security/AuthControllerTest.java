@@ -54,7 +54,7 @@ class AuthControllerTest {
 
     mockMvc
         .perform(
-            post("/api/auth/login")
+            post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"user\",\"password\":\"user123\"}"))
         .andExpect(status().isOk())
@@ -71,7 +71,7 @@ class AuthControllerTest {
 
     mockMvc
         .perform(
-            post("/api/auth/login")
+            post("/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"user\",\"password\":\"wrong\"}"))
         .andExpect(status().isUnauthorized())
@@ -92,7 +92,7 @@ class AuthControllerTest {
 
     mockMvc
         .perform(
-            post("/api/auth/register")
+            post("/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"newuser\",\"password\":\"secret123\"}"))
         .andExpect(status().isCreated())
