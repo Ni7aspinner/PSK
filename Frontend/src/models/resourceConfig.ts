@@ -59,6 +59,19 @@ export type Service = {
   version?: number
 }
 
+export type ActiveSupplierRow = {
+  activeContracts: number
+  activeServices: number
+  name: string
+  registrationCode: string
+  supplierId: number
+}
+
+export type ActiveSuppliersReport = {
+  generatedAt: string
+  rows: ActiveSupplierRow[]
+}
+
 export type EnrichedContract = Contract & { servicesCount: number; supplierName: string }
 export type EnrichedContact = Contact & { primaryLabel: 'Primary' | 'Secondary'; supplierName: string }
 export type EnrichedService = Service & {

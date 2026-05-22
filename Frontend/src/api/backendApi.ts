@@ -1,4 +1,5 @@
 import type {
+  ActiveSuppliersReport,
   AuthPayload,
   Contact,
   ContactCreatePayload,
@@ -123,6 +124,8 @@ const backendApi = {
     request<Contract>(`/api/contracts/${id}/terminate`, session, { method: 'POST' }),
   setPrimaryContact: (session: Session, id: number) =>
     request<Contact>(`/api/contacts/${id}/set-primary`, session, { method: 'PUT' }),
+  getActiveSuppliersReport: (session: Session) =>
+    request<ActiveSuppliersReport>('/api/reports/active-suppliers', session),
 }
 
 export { API_BASE, backendApi }

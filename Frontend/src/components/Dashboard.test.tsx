@@ -12,6 +12,7 @@ vi.mock('../api/backendApi', () => ({
     getContacts: vi.fn(),
     getContract: vi.fn(),
     getContracts: vi.fn(),
+    getActiveSuppliersReport: vi.fn(),
     getService: vi.fn(),
     getServices: vi.fn(),
     getSupplier: vi.fn(),
@@ -235,5 +236,42 @@ describe('Dashboard', () => {
 
     expect(await screen.findByText('Unable to reach API.')).toBeInTheDocument()
     expect(screen.getByText('No suppliers found.')).toBeInTheDocument()
+  })
+
+  it('loads and filters the active suppliers report', async () => {
+    api.getActiveSuppliersReport.mockResolvedValue({
+      generatedAt: '2026-05-22T10:00:00Z',
+      rows: [
+        {
+          activeContracts: 1,
+          activeServices: 2,
+          name: 'Acme',
+          registrationCode: 'ACME-1',
+          supplierId: 1,
+        },
+        {
+          activeContracts: 0,
+          activeServices: 0,
+          name: 'Beta',
+          registrationCode: 'BETA-2',
+          supplierId: 2,
+        },
+      ],
+    })
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    await screen.findByText('Acme')
+    fireEvent.click(screen.getByRole('button', { name: /Reports/ }))
+
+    expect(await screen.findByRole('heading', { name: 'Active suppliers report' })).toBeInTheDocument()
+    expect(api.getActiveSuppliersReport).toHaveBeenCalledWith(session)
+    expect(screen.getByText('ACME-1')).toBeInTheDocument()
+    expect(screen.getByText('BETA-2')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Search suppliers...'), { target: { value: 'Beta' } })
+
+    expect(screen.queryByText('ACME-1')).not.toBeInTheDocument()
+    expect(screen.getByText('BETA-2')).toBeInTheDocument()
   })
 })

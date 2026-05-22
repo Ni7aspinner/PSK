@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import heroMark from '../assets/hero.png'
 import { backendApi } from '../api/backendApi'
 import {
+  type ActiveSuppliersReport,
   resourceConfig,
   navItems,
   type Contact,
@@ -36,11 +37,14 @@ import {
 import { ResourceTable } from './ResourceTable'
 import { FormModal } from './FormModal'
 import { ThemeToggle } from './ThemeToggle'
+import { ActiveSuppliersReportPanel } from './ActiveSuppliersReportPanel'
 
 type DashboardProps = Readonly<{
   session: Session
   onSignOut: () => void
 }>
+
+type DashboardPage = ResourceKey | 'reports'
 
 interface FormModalState {
   mode: ResourceMode
@@ -48,6 +52,7 @@ interface FormModalState {
 }
 
 const initialResources: Resources = { suppliers: [], contacts: [], contracts: [], services: [] }
+const dashboardNavItems = [...navItems, { key: 'reports' as const, label: 'Reports' }]
 
 function searchableValue(value: unknown) {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -64,15 +69,21 @@ function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
 }
 
 function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
-  const [activePage, setActivePage] = useState<ResourceKey>('suppliers')
+  const [activePage, setActivePage] = useState<DashboardPage>('suppliers')
   const [resources, setResources] = useState(initialResources)
   const [selected, setSelected] = useState<Partial<Record<ResourceKey, ResourceItem | null>>>({})
   const [expandedDetails, setExpandedDetails] = useState<Partial<Record<ResourceKey, ResourceDetail | null>>>({})
+  const [activeSuppliersReport, setActiveSuppliersReport] = useState<ActiveSuppliersReport | null>(null)
   const [loading, setLoading] = useState(true)
+  const [reportLoading, setReportLoading] = useState(false)
   const [busyAction, setBusyAction] = useState('')
   const [error, setError] = useState('')
+  const [reportError, setReportError] = useState('')
   const [formModal, setFormModal] = useState<FormModalState | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [reportSearchQuery, setReportSearchQuery] = useState('')
+
+  const activeResourceKey = activePage === 'reports' ? null : activePage
 
   const counts = useMemo(
     () => ({
@@ -80,11 +91,15 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       contacts: resources.contacts.length,
       contracts: resources.contracts.length,
       services: resources.services.length,
+      reports: activeSuppliersReport?.rows.length ?? 0,
     }),
-    [resources],
+    [activeSuppliersReport, resources],
   )
 
-  const enrichedRows = useMemo(() => getEnrichedRows(activePage, resources), [activePage, resources])
+  const enrichedRows = useMemo(
+    () => (activeResourceKey ? getEnrichedRows(activeResourceKey, resources) : []),
+    [activeResourceKey, resources],
+  )
 
   const filteredRows = useMemo(() => {
     if (!searchQuery) return enrichedRows
@@ -93,6 +108,13 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       return Object.values(row).some((val) => searchableValue(val).includes(q))
     })
   }, [enrichedRows, searchQuery])
+
+  const filteredReportRows = useMemo(() => {
+    const rows = activeSuppliersReport?.rows ?? []
+    if (!reportSearchQuery) return rows
+    const q = reportSearchQuery.toLowerCase()
+    return rows.filter((row) => Object.values(row).some((val) => searchableValue(val).includes(q)))
+  }, [activeSuppliersReport, reportSearchQuery])
 
   const loadDashboard = useCallback(async () => {
     setLoading(true)
@@ -117,9 +139,27 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     }
   }, [session])
 
+  const loadActiveSuppliersReport = useCallback(async () => {
+    setReportLoading(true)
+    setReportError('')
+    try {
+      setActiveSuppliersReport(await backendApi.getActiveSuppliersReport(session))
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : 'Unable to load active suppliers report.')
+    } finally {
+      setReportLoading(false)
+    }
+  }, [session])
+
   useEffect(() => {
     loadDashboard()
   }, [loadDashboard])
+
+  useEffect(() => {
+    if (activePage === 'reports' && !activeSuppliersReport && !reportLoading) {
+      loadActiveSuppliersReport()
+    }
+  }, [activePage, activeSuppliersReport, loadActiveSuppliersReport, reportLoading])
 
   const runAction = async (label: string, action: () => Promise<void>) => {
     setBusyAction(label)
@@ -297,7 +337,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     loadDetails(resourceKey, item)
   }
 
-  const config = resourceConfig[activePage]
+  const config = activeResourceKey ? resourceConfig[activeResourceKey] : null
 
   return (
     <main className="dashboard-screen">
@@ -322,7 +362,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
         </header>
 
         <nav className="dashboard-nav" aria-label="Resource pages">
-          {navItems.map((item) => (
+          {dashboardNavItems.map((item) => (
             <button
               key={item.key}
               type="button"
@@ -337,13 +377,13 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
           ))}
         </nav>
 
-        {error && <p className="alert-text">{error}</p>}
+        {activeResourceKey && error && <p className="alert-text">{error}</p>}
 
-        {loading ? (
+        {activeResourceKey && loading ? (
           <section className="dashboard-panel">
             <p className="empty-state">Loading resources...</p>
           </section>
-        ) : (
+        ) : activeResourceKey && config ? (
           <section className="dashboard-panel resource-main" aria-label={config.title}>
             <div className="resource-heading">
               <div>
@@ -361,7 +401,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                 <button
                   type="button"
                   className="primary-action resource-create"
-                  onClick={() => openCreateModal(activePage)}>
+                  onClick={() => openCreateModal(activeResourceKey)}>
                   Create {config.singular}
                 </button>
               </div>
@@ -370,18 +410,28 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
               busyAction={busyAction}
               config={config}
               deleteItem={deleteItem}
-              expandedDetails={expandedDetails[activePage]}
+              expandedDetails={expandedDetails[activeResourceKey]}
               loadDetails={loadDetails}
               closeDetails={closeDetails}
               openRelatedDetails={openRelatedDetails}
               openEditModal={openEditModal}
-              resourceKey={activePage}
+              resourceKey={activeResourceKey}
               rows={filteredRows}
-              selected={selected[activePage]}
+              selected={selected[activeResourceKey]}
               setPrimaryContact={setPrimaryContact}
               terminateContract={terminateContract}
             />
           </section>
+        ) : (
+          <ActiveSuppliersReportPanel
+            error={reportError}
+            loading={reportLoading}
+            onRefresh={loadActiveSuppliersReport}
+            onSearchChange={setReportSearchQuery}
+            report={activeSuppliersReport}
+            rows={filteredReportRows}
+            searchQuery={reportSearchQuery}
+          />
         )}
 
         {formModal && (

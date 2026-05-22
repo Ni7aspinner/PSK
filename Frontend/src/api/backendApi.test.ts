@@ -144,6 +144,27 @@ describe('backendApi', () => {
     })
   })
 
+  it('calls the active suppliers report endpoint', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        generatedAt: '2026-05-22T10:00:00Z',
+        rows: [{ activeContracts: 1, activeServices: 2, name: 'Acme', registrationCode: 'ACME-1', supplierId: 1 }],
+      }),
+    } as Response)
+
+    await expect(backendApi.getActiveSuppliersReport({ token: 'jwt-token' })).resolves.toMatchObject({
+      rows: [{ name: 'Acme', activeContracts: 1 }],
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/api/reports/active-suppliers`, {
+      headers: {
+        Authorization: 'Bearer jwt-token',
+      },
+    })
+  })
+
   it('maps resource read, update, and delete helpers to their backend endpoints', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
