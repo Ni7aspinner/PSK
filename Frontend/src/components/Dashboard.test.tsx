@@ -8,6 +8,7 @@ vi.mock('../api/backendApi', () => ({
     createSupplier: vi.fn(),
     deleteContact: vi.fn(),
     deleteSupplier: vi.fn(),
+    getActiveSuppliersPdf: vi.fn(),
     getContact: vi.fn(),
     getContacts: vi.fn(),
     getContract: vi.fn(),
@@ -161,6 +162,25 @@ describe('Dashboard', () => {
       expect(screen.queryByText('Acme Updated')).not.toBeInTheDocument()
     })
     expect(api.deleteSupplier).toHaveBeenCalledWith(session, 1)
+  })
+
+  it('shows the active suppliers PDF action for admins and opens the report', async () => {
+    const pdfBlob = new Blob(['pdf-bytes'], { type: 'application/pdf' })
+    const openMock = vi.spyOn(window, 'open').mockReturnValue(null)
+    api.getActiveSuppliersPdf.mockResolvedValue(pdfBlob)
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    await screen.findByText('Acme')
+    fireEvent.click(screen.getAllByTitle('Expand details')[0])
+
+    const action = await screen.findByRole('button', { name: 'Open active suppliers PDF' })
+    fireEvent.click(action)
+
+    await waitFor(() => {
+      expect(api.getActiveSuppliersPdf).toHaveBeenCalledWith(session)
+    })
+    expect(openMock).toHaveBeenCalledTimes(1)
   })
 
   it('terminates active contracts from the contracts table', async () => {

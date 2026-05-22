@@ -4,6 +4,7 @@ import { ResourceDetails } from './ResourceDetails'
 describe('ResourceDetails', () => {
   it('renders supplier relationships and opens related records', () => {
     const onRelatedSelect = vi.fn()
+    const onOpenActiveSuppliersPdf = vi.fn()
     const contract = {
       id: 10,
       contractNumber: 'C-001',
@@ -18,8 +19,10 @@ describe('ResourceDetails', () => {
     render(
       <ResourceDetails
         detail={{ contracts: [contract], services: [service] }}
+        onOpenActiveSuppliersPdf={onOpenActiveSuppliersPdf}
         onRelatedSelect={onRelatedSelect}
         primary="Acme"
+        session={{ role: 'ADMIN', token: 'jwt-token', username: 'ada' }}
         resourceKey="suppliers"
       />,
     )
@@ -32,6 +35,36 @@ describe('ResourceDetails', () => {
     expect(onRelatedSelect).toHaveBeenNthCalledWith(2, 'services', service)
   })
 
+  it('shows the active suppliers PDF action only to admins', () => {
+    const onOpenActiveSuppliersPdf = vi.fn()
+
+    const { rerender } = render(
+      <ResourceDetails
+        detail={{}}
+        onOpenActiveSuppliersPdf={onOpenActiveSuppliersPdf}
+        onRelatedSelect={vi.fn()}
+        primary="Acme"
+        session={{ role: 'USER', token: 'jwt-token', username: 'ada' }}
+        resourceKey="suppliers"
+      />,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Open active suppliers PDF' })).not.toBeInTheDocument()
+
+    rerender(
+      <ResourceDetails
+        detail={{}}
+        onOpenActiveSuppliersPdf={onOpenActiveSuppliersPdf}
+        onRelatedSelect={vi.fn()}
+        primary="Acme"
+        session={{ role: 'ADMIN', token: 'jwt-token', username: 'ada' }}
+        resourceKey="suppliers"
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: 'Open active suppliers PDF' })).toBeInTheDocument()
+  })
+
   it('renders contract supplier and linked services', () => {
     const onRelatedSelect = vi.fn()
     const supplier = { id: 1, email: 'ops@acme.test', name: 'Acme', phone: '555-0100', registrationCode: 'ACME-1' }
@@ -40,8 +73,10 @@ describe('ResourceDetails', () => {
     render(
       <ResourceDetails
         detail={{ services: [service], supplier }}
+        onOpenActiveSuppliersPdf={vi.fn()}
         onRelatedSelect={onRelatedSelect}
         primary="Support Agreement"
+        session={{ role: 'ADMIN', token: 'jwt-token', username: 'ada' }}
         resourceKey="contracts"
       />,
     )
@@ -54,8 +89,10 @@ describe('ResourceDetails', () => {
     render(
       <ResourceDetails
         detail={{ contract: null, supplier: null }}
+        onOpenActiveSuppliersPdf={vi.fn()}
         onRelatedSelect={vi.fn()}
         primary="Unassigned service"
+        session={{ role: 'ADMIN', token: 'jwt-token', username: 'ada' }}
         resourceKey="services"
       />,
     )

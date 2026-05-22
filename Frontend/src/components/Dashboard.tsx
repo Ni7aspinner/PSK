@@ -292,6 +292,15 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     })
   }
 
+  const openActiveSuppliersPdf = () => {
+    runAction('active-suppliers-pdf', async () => {
+      const pdfBlob = await backendApi.getActiveSuppliersPdf(session)
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      window.open(pdfUrl, '_blank', 'noopener,noreferrer')
+      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000)
+    })
+  }
+
   const openRelatedDetails = (resourceKey: ResourceKey, item: ResourceItem) => {
     setActivePage(resourceKey)
     loadDetails(resourceKey, item)
@@ -371,10 +380,12 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
               config={config}
               deleteItem={deleteItem}
               expandedDetails={expandedDetails[activePage]}
+              onOpenActiveSuppliersPdf={openActiveSuppliersPdf}
               loadDetails={loadDetails}
               closeDetails={closeDetails}
               openRelatedDetails={openRelatedDetails}
               openEditModal={openEditModal}
+              session={session}
               resourceKey={activePage}
               rows={filteredRows}
               selected={selected[activePage]}

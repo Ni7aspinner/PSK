@@ -1,9 +1,15 @@
 import type { ReactNode } from 'react'
 import { resourceConfig, type ResourceDetail, type ResourceItem, type ResourceKey } from '../models/resourceConfig'
+import type { Session } from '../models/resourceConfig'
 import { resourceLabel } from '../utils/dashboardUtils'
 
 type RelatedSelect = (resourceKey: ResourceKey, item: ResourceItem) => void
-type DetailProps = Readonly<{ detail: ResourceDetail; onRelatedSelect: RelatedSelect }>
+type DetailProps = Readonly<{
+  detail: ResourceDetail
+  onOpenActiveSuppliersPdf: () => void
+  onRelatedSelect: RelatedSelect
+  session: Session
+}>
 type ResourceDetailsProps = Readonly<
   DetailProps & {
     primary: ReactNode
@@ -23,16 +29,30 @@ type RelatedRecordButtonProps = Readonly<{
   resourceKey: ResourceKey
 }>
 
-export function ResourceDetails({ detail, onRelatedSelect, primary, resourceKey }: Readonly<ResourceDetailsProps>) {
+export function ResourceDetails({
+  detail,
+  onOpenActiveSuppliersPdf,
+  onRelatedSelect,
+  primary,
+  resourceKey,
+  session,
+}: Readonly<ResourceDetailsProps>) {
   const config = resourceConfig[resourceKey]
+  const canOpenActiveSuppliersPdf = session.role?.toUpperCase() === 'ADMIN'
 
   return (
     <section className="details-panel">
+      {resourceKey === 'suppliers' && (
+          <button type="button" className="primary-action" onClick={onOpenActiveSuppliersPdf}>
+            Open active suppliers PDF
+          </button>
+        )}
       <div className="details-heading">
         <div>
           <p className="kicker">{config.singular} details</p>
           <h3>{primary}</h3>
         </div>
+        
       </div>
       {resourceKey === 'suppliers' && <SupplierDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
       {resourceKey === 'contacts' && <ContactDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
