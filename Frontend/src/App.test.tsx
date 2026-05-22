@@ -90,6 +90,39 @@ describe('App', () => {
     expect(api.register).toHaveBeenCalledWith({ username: 'new-user', password: 'secret1' })
   })
 
+  it('syncs login from another tab via storage event', async () => {
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+
+    fireEvent(
+      window,
+      new StorageEvent('storage', {
+        key: 'psk-session',
+        newValue: JSON.stringify(session),
+      }),
+    )
+
+    expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
+  })
+
+  it('syncs logout from another tab via storage event', async () => {
+    localStorage.setItem('psk-session', JSON.stringify(session))
+    render(<App />)
+    expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
+
+    fireEvent(
+      window,
+      new StorageEvent('storage', {
+        key: 'psk-session',
+        newValue: null,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    })
+  })
+
   it('loads the dashboard from a stored session and signs out', async () => {
     localStorage.setItem('psk-session', JSON.stringify(session))
 
