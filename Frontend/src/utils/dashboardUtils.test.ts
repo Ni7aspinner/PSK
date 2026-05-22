@@ -175,6 +175,15 @@ describe('dashboardUtils', () => {
   it('enriches contract and service rows for display', () => {
     const resources = {
       suppliers: [{ id: 1, name: 'Acme', registrationCode: 'ACME-1' }],
+      contacts: [
+        {
+          id: 30,
+          firstName: 'Ada',
+          lastName: 'Lovelace',
+          primary: true,
+          supplierId: 1,
+        },
+      ],
       contracts: [
         {
           id: 10,
@@ -202,6 +211,17 @@ describe('dashboardUtils', () => {
       ],
     }
 
+    expect(getEnrichedRows('contacts', resources)).toEqual([
+      {
+        firstName: 'Ada',
+        id: 30,
+        lastName: 'Lovelace',
+        primary: true,
+        primaryLabel: 'Primary',
+        supplierId: 1,
+        supplierName: 'Acme',
+      },
+    ])
     expect(getEnrichedRows('contracts', resources)).toEqual([
       {
         contractNumber: 'C-001',

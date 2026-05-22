@@ -4,6 +4,7 @@ import { backendApi } from './api/backendApi'
 
 vi.mock('./api/backendApi', () => ({
   backendApi: {
+    getContacts: vi.fn(),
     getContracts: vi.fn(),
     getServices: vi.fn(),
     getSuppliers: vi.fn(),
@@ -19,6 +20,7 @@ function mockDashboardResources() {
   api.getSuppliers.mockResolvedValue([
     { id: 1, email: 'ops@acme.test', name: 'Acme', phone: '555-0100', registrationCode: 'ACME-1' },
   ])
+  api.getContacts.mockResolvedValue([])
   api.getContracts.mockResolvedValue([
     {
       id: 10,

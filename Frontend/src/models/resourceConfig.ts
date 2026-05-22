@@ -1,5 +1,5 @@
 export type AuthMode = 'login' | 'register'
-export type ResourceKey = 'suppliers' | 'contracts' | 'services'
+export type ResourceKey = 'suppliers' | 'contacts' | 'contracts' | 'services'
 export type ResourceMode = 'create' | 'edit'
 
 export type Session = { role?: string; token: string; username?: string }
@@ -20,6 +20,19 @@ export type Supplier = {
   name: string
   phone?: string | null
   registrationCode: string
+  version?: number
+}
+
+export type Contact = {
+  id: number
+  createdAt?: string | null
+  email?: string | null
+  firstName: string
+  lastName: string
+  phone?: string | null
+  position?: string | null
+  primary: boolean
+  supplierId: number
   version?: number
 }
 
@@ -47,21 +60,24 @@ export type Service = {
 }
 
 export type EnrichedContract = Contract & { servicesCount: number; supplierName: string }
+export type EnrichedContact = Contact & { primaryLabel: 'Primary' | 'Secondary'; supplierName: string }
 export type EnrichedService = Service & {
   activeLabel: 'Active' | 'Inactive'
   contractTitle: string
   supplierName: string
 }
-export type ResourceItem = Supplier | Contract | Service | EnrichedContract | EnrichedService
+export type ResourceItem = Supplier | Contact | Contract | Service | EnrichedContact | EnrichedContract | EnrichedService
 
 export type Resources = {
   suppliers: Supplier[]
+  contacts: Contact[]
   contracts: Contract[]
   services: Service[]
 }
 
 export type RowsByKey = {
   suppliers: Supplier[]
+  contacts: EnrichedContact[]
   contracts: EnrichedContract[]
   services: EnrichedService[]
 }
@@ -70,6 +86,7 @@ export type ResourceDetail = {
   item?: ResourceItem
   contract?: Contract | null
   contracts?: Contract[]
+  contacts?: Contact[]
   services?: Service[]
   supplier?: Supplier | null
 }
@@ -77,6 +94,16 @@ export type ResourceDetail = {
 export type AuthPayload = { username: string; password: string }
 export type SupplierCreatePayload = { email?: string; name: string; phone?: string; registrationCode: string }
 export type SupplierUpdatePayload = { email?: string; name: string; phone?: string; version: number }
+export type ContactCreatePayload = {
+  email?: string
+  firstName: string
+  lastName: string
+  phone?: string
+  position?: string
+  primary?: boolean
+  supplierId: number
+}
+export type ContactUpdatePayload = ContactCreatePayload & { primary: boolean; version: number }
 export type ContractCreatePayload = {
   contractNumber: string
   endDate: string
@@ -111,6 +138,8 @@ export type ServiceUpdatePayload = {
 export type ResourcePayload =
   | SupplierCreatePayload
   | SupplierUpdatePayload
+  | ContactCreatePayload
+  | ContactUpdatePayload
   | ContractCreatePayload
   | ContractUpdatePayload
   | ServiceCreatePayload
@@ -119,6 +148,8 @@ export type ResourcePayload =
 type ResourceFieldName =
   | keyof SupplierCreatePayload
   | keyof SupplierUpdatePayload
+  | keyof ContactCreatePayload
+  | keyof ContactUpdatePayload
   | keyof ContractCreatePayload
   | keyof ContractUpdatePayload
   | keyof ServiceCreatePayload
@@ -138,7 +169,7 @@ export type ResourceConfig = {
   title: string
   singular: string
   primaryField: string
-  apiName: 'Supplier' | 'Contract' | 'Service'
+  apiName: 'Supplier' | 'Contact' | 'Contract' | 'Service'
   fields: FieldConfig[]
   columns: Array<{ key: string; label: string }>
 }
@@ -160,6 +191,30 @@ export const resourceConfig = {
       { key: 'registrationCode', label: 'Registration Code' },
       { key: 'email', label: 'Email' },
       { key: 'phone', label: 'Phone' },
+    ],
+  },
+  contacts: {
+    title: 'Contacts',
+    singular: 'contact',
+    apiName: 'Contact',
+    primaryField: 'lastName',
+    fields: [
+      { name: 'firstName', label: 'First name', required: true },
+      { name: 'lastName', label: 'Last name', required: true },
+      { name: 'position', label: 'Position' },
+      { name: 'email', label: 'Email', type: 'email' },
+      { name: 'phone', label: 'Phone' },
+      { name: 'primary', label: 'Primary', type: 'select', options: ['true', 'false'], required: true },
+      { name: 'supplierId', label: 'Supplier', type: 'resourceSelect', resourceTarget: 'suppliers', required: true },
+    ],
+    columns: [
+      { key: 'firstName', label: 'First Name' },
+      { key: 'lastName', label: 'Last Name' },
+      { key: 'position', label: 'Position' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'supplierName', label: 'Supplier' },
+      { key: 'primaryLabel', label: 'Primary' },
     ],
   },
   contracts: {
@@ -216,6 +271,7 @@ export const resourceConfig = {
 
 export const navItems = [
   { key: 'suppliers', label: 'Suppliers' },
+  { key: 'contacts', label: 'Contacts' },
   { key: 'contracts', label: 'Contracts' },
   { key: 'services', label: 'Services' },
 ] satisfies Array<{ key: ResourceKey; label: string }>
