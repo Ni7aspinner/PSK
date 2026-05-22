@@ -344,6 +344,17 @@
   justify-content: space-between;
 }
 
+.auth-mode-kicker {
+  margin: 0;
+}
+
+.auth-mode-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 800;
+}
+
 .auth-mark-hidden {
   position: absolute;
   width: 1px;

@@ -19,6 +19,10 @@ type FormModalProps = Readonly<{
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }>
 
+function formControlValue(value: unknown) {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''
+}
+
 function renderFieldControl(
   field: FieldConfig,
   item: ResourceItem | null | undefined,
@@ -42,23 +46,23 @@ function renderFieldControl(
 
   if (field.type === 'resourceSelect' && field.resourceTarget) {
     const resourceTarget = field.resourceTarget
-    const defaultValue = defaultValues?.[field.name] ?? (item ? resourceValue(item, field.name) : undefined)
-    const isLocked = !item && defaultValues && field.name in defaultValues
+    const defaultValue = formControlValue(defaultValues?.[field.name] ?? (item ? resourceValue(item, field.name) : undefined))
+    const isLocked = !item && defaultValues && field.name in defaultValues && defaultValue !== ''
 
     if (isLocked) {
       const resItem = resources[resourceTarget]?.find((res) => res.id === Number(defaultValue))
       return (
         <>
-          <select disabled defaultValue={String(defaultValue)}>
-            <option value={String(defaultValue)}>{resourceLabel(resourceTarget, resItem)}</option>
+          <select disabled defaultValue={defaultValue}>
+            <option value={defaultValue}>{resourceLabel(resourceTarget, resItem)}</option>
           </select>
-          <input type="hidden" name={field.name} value={String(defaultValue)} />
+          <input type="hidden" name={field.name} value={defaultValue} />
         </>
       )
     }
 
     return (
-      <select name={field.name} required={field.required} defaultValue={String(defaultValue ?? '')}>
+      <select name={field.name} required={field.required} defaultValue={defaultValue}>
         <option value="" disabled={field.required}>
           {field.required ? `Select ${(field.label ?? field.name).toLowerCase()}` : 'Unassigned'}
         </option>
@@ -76,7 +80,7 @@ function renderFieldControl(
       name={field.name}
       type={field.type ?? 'text'}
       required={field.required}
-      defaultValue={String(item ? (resourceValue(item, field.name) ?? '') : '')}
+      defaultValue={formControlValue(item ? resourceValue(item, field.name) : '')}
     />
   )
 }

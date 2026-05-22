@@ -97,4 +97,34 @@ describe('ResourceTable', () => {
     fireEvent.click(screen.getByTitle('Collapse details'))
     expect(closeDetails).toHaveBeenCalledWith('contracts')
   })
+
+  it('opens a row through the native row action button', () => {
+    const row = {
+      id: 1,
+      email: 'ops@acme.test',
+      name: 'Acme',
+      phone: '555-0100',
+      registrationCode: 'ACME-1',
+    }
+    const openRelatedDetails = vi.fn()
+
+    render(
+      <ResourceTable
+        closeDetails={vi.fn()}
+        config={resourceConfig.suppliers}
+        deleteItem={vi.fn()}
+        loadDetails={vi.fn()}
+        openEditModal={vi.fn()}
+        openRelatedDetails={openRelatedDetails}
+        rows={[row]}
+        resourceKey="suppliers"
+        setPrimaryContact={vi.fn()}
+        terminateContract={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Acme/ }))
+
+    expect(openRelatedDetails).toHaveBeenCalledWith('suppliers', row)
+  })
 })

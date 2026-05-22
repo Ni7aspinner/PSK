@@ -70,6 +70,10 @@ function filterRows<T extends ResourceItem>(rows: T[], query: string) {
   return rows.filter((row) => Object.values(row).some((val) => searchableValue(val).includes(q)))
 }
 
+function isWorkspaceTab(resourceKey: ResourceKey): resourceKey is WorkspaceTab {
+  return workspaceTabs.includes(resourceKey as WorkspaceTab)
+}
+
 function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
   return contacts.map((row) =>
     row.supplierId === primaryContact.supplierId ? { ...row, primary: row.id === primaryContact.id } : row,
@@ -297,7 +301,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const setPrimaryContact = (contact: Contact) => {
     runAction(`primary-contact-${contact.id}`, async () => {
       const primary = await backendApi.setPrimaryContact(session, contact.id)
-      const update = (rows: ResourceItem[]) => updatePrimaryContacts(rows as Contact[], primary)
+      const update = (rows: Contact[]) => updatePrimaryContacts(rows, primary)
       setResources((curr) => ({ ...curr, contacts: update(curr.contacts) }))
       setSelected((curr) => ({ ...curr, contacts: primary }))
       setExpandedDetails((curr) => curr.contacts?.item?.id === primary.id ? { ...curr, contacts: { ...curr.contacts, item: primary } } : curr)
@@ -319,8 +323,10 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
         openSupplierWorkspace(resources.suppliers.find((s) => s.id === item.id) ?? (item as Supplier))
       }
     } else {
-      switchWorkspaceTab(resourceKey as WorkspaceTab)
-      loadDetails(resourceKey, item)
+      if (isWorkspaceTab(resourceKey)) {
+        switchWorkspaceTab(resourceKey)
+        loadDetails(resourceKey, item)
+      }
     }
   }
 
@@ -353,7 +359,6 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
         ['Phone', selectedSupplier.phone || '-'],
       ]
     : []
-
   return (
     <main className="dashboard-screen">
       <div className="dashboard-shell">
@@ -386,24 +391,16 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
           <section className="dashboard-panel resource-main" aria-label={config.title}>
             <div className="split-pane-layout">
               {/* Left Pane (Master Table) */}
-              <div
-                className="master-pane"
-                style={
-                  !selectedSupplier
-                    ? { flex: '1 1 100%', maxWidth: '100%', borderRight: 'none', paddingRight: 0 }
-                    : undefined
-                }
-              >
-                <div className="resource-heading" style={{ marginBottom: '16px', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className={`master-pane ${selectedSupplier ? '' : 'master-pane-full'}`}>
+                <div className="resource-heading supplier-list-heading">
+                  <div className="supplier-list-toolbar">
                     <div>
-                      <p className="kicker" style={{ fontSize: '10px' }}>{config.title} · {filteredRows.length}</p>
+                      <p className="kicker supplier-count-kicker">{config.title} · {filteredRows.length}</p>
                     </div>
                     <button
                       type="button"
-                      className="primary-action resource-create"
-                      onClick={() => openCreateModal('suppliers')}
-                      style={{ padding: '6px 12px', fontSize: '12px', minHeight: '32px' }}>
+                      className="primary-action resource-create supplier-create-action"
+                      onClick={() => openCreateModal('suppliers')}>
                       Create {config.singular}
                     </button>
                   </div>
@@ -413,7 +410,6 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                     placeholder={`Search ${config.title.toLowerCase()}...`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ width: '100%', minHeight: '36px' }}
                   />
                 </div>
                 <ResourceTable
@@ -423,7 +419,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                   resourceKey="suppliers"
                   rows={filteredRows}
                   selected={selected.suppliers}
-                  isCompact={!!selectedSupplier}
+                  isCompact={Boolean(selectedSupplier)}
                 />
               </div>
 
@@ -434,7 +430,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                     <div className="workspace-profile-header">
                       <div>
                         <span className="kicker">Supplier Hub</span>
-                        <h2 style={{ fontSize: '22px', fontWeight: 700, margin: '4px 0', color: 'var(--ink)' }}>
+                        <h2 className="supplier-profile-title">
                           {selectedSupplier.name}
                         </h2>
                         <div className="profile-meta-grid">
@@ -449,16 +445,14 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                       <div className="heading-actions">
                         <button
                           type="button"
-                          className="link-action"
-                          onClick={() => openEditModal('suppliers', selectedSupplier)}
-                          style={{ minHeight: '32px', padding: '6px 12px' }}>
+                          className="link-action workspace-link-action"
+                          onClick={() => openEditModal('suppliers', selectedSupplier)}>
                           Edit supplier
                         </button>
                         <button
                           type="button"
-                          className="link-action"
-                          onClick={() => closeDetails('suppliers')}
-                          style={{ minHeight: '32px', padding: '6px 12px', color: 'var(--accent-red)' }}>
+                          className="link-action workspace-link-action close-supplier-action"
+                          onClick={() => closeDetails('suppliers')}>
                           ✕ Close
                         </button>
                       </div>

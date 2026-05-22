@@ -278,6 +278,10 @@ select:focus-visible {
   color: var(--ink);
 }
 
+.interactive-row {
+  cursor: pointer;
+}
+
 .row-actions {
   display: flex;
   gap: 6px;
@@ -610,9 +614,6 @@ select:disabled {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
-}
-
-.alert-text {
   border: 1px solid var(--danger-border);
   background: var(--danger-bg);
   color: var(--danger-text);
@@ -717,6 +718,22 @@ select:disabled {
   text-align: left;
 }
 
+.table-row-button {
+  min-height: auto;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.table-row-button:hover {
+  color: var(--ink);
+}
+
 .split-pane-layout {
   display: flex;
   gap: 28px;
@@ -734,6 +751,36 @@ select:disabled {
   gap: 16px;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   padding-right: 28px;
+}
+
+.master-pane-full {
+  flex: 1 1 100%;
+  max-width: 100%;
+  border-right: none;
+  padding-right: 0;
+}
+
+.supplier-list-heading {
+  margin-bottom: 16px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.supplier-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.supplier-count-kicker {
+  font-size: 10px;
+}
+
+.supplier-create-action {
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .workspace-pane {
@@ -754,6 +801,13 @@ select:disabled {
   align-items: flex-start;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   padding-bottom: 20px;
+}
+
+.supplier-profile-title {
+  margin: 4px 0;
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .profile-meta-grid {
@@ -801,33 +855,13 @@ select:disabled {
   color: var(--ink-muted);
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 100px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
+.workspace-link-action {
+  min-height: 32px;
+  padding: 6px 12px;
 }
 
-.badge-active {
-  background: rgba(16, 185, 129, 0.1);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.badge-expired {
-  background: rgba(245, 158, 11, 0.1);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.2);
-}
-
-.badge-terminated {
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+.close-supplier-action {
+  color: var(--danger);
 }
 
 @media (max-width: 1024px) {

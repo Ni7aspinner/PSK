@@ -86,8 +86,7 @@ function mockLoad() {
 }
 
 async function openSupplierWorkspace() {
-  const supplierRow = await screen.findByRole('row', { name: /Acme/ })
-  fireEvent.click(supplierRow)
+  fireEvent.click(await screen.findByRole('button', { name: 'Acme' }))
   await screen.findByRole('heading', { name: 'Acme' })
 }
 

@@ -1,13 +1,5 @@
 import { Fragment } from 'react'
-import type {
-  Contact,
-  Contract,
-  ResourceConfig,
-  ResourceDetail,
-  ResourceItem,
-  ResourceKey,
-  Service,
-} from '../models/resourceConfig'
+import type { Contact, Contract, ResourceConfig, ResourceDetail, ResourceItem, ResourceKey } from '../models/resourceConfig'
 import { isContactLike, isContractLike, resourceValue } from '../utils/dashboardUtils'
 import { formatCellValue } from '../utils/modelUtils'
 import { IconEdit, IconTrash, IconTerminate, IconPrimary, IconChevronDown, IconChevronUp } from './Icons'
@@ -32,13 +24,6 @@ type ResourceTableProps = Readonly<{
   terminateContract: (contract: Contract) => void
   isCompact?: boolean
 }>
-
-const badgeColumns = new Set(['status', 'activeLabel', 'primaryLabel'])
-
-const badgeClassName = (value: string) => {
-  const lower = value.toLowerCase()
-  return lower === 'active' || lower === 'primary' ? 'badge-active' : lower === 'terminated' ? 'badge-terminated' : 'badge-expired'
-}
 
 export function ResourceTable({
   config,
@@ -65,6 +50,7 @@ export function ResourceTable({
     isCompact && resourceKey === 'suppliers' ? col.key === 'name' : !columnKeys || columnKeys.includes(col.key),
   )
   const canExpand = resourceKey === 'contracts' || resourceKey === 'services'
+  const isRowInteractive = resourceKey === 'suppliers' || canExpand
 
   return (
     <div className="table-wrap">
@@ -80,31 +66,41 @@ export function ResourceTable({
         <tbody>
           {rows.map((row) => {
             const isExpanded = expandedDetails?.item?.id === row.id
+            const activateRow = () => {
+              if (resourceKey === 'suppliers') {
+                openRelatedDetails(resourceKey, row)
+              } else if (canExpand && isExpanded) {
+                closeDetails?.(resourceKey)
+              } else if (canExpand) {
+                loadDetails(resourceKey, row)
+              }
+            }
+
             return (
               <Fragment key={row.id}>
                 <tr
-                  className={selected?.id === row.id || isExpanded ? 'selected-row' : ''}
-                  onClick={() => {
-                    if (resourceKey === 'suppliers') {
-                      openRelatedDetails(resourceKey, row)
-                    } else if (canExpand && isExpanded) {
-                      closeDetails?.(resourceKey)
-                    } else if (canExpand) {
-                      loadDetails(resourceKey, row)
-                    }
-                  }}
-                  style={{ cursor: resourceKey === 'suppliers' || canExpand ? 'pointer' : undefined }}
+                  className={`${selected?.id === row.id || isExpanded ? 'selected-row' : ''} ${isRowInteractive ? 'interactive-row' : ''}`}
+                  onClick={isRowInteractive ? activateRow : undefined}
                 >
-                  {displayColumns.map((col) => {
+                  {displayColumns.map((col, index) => {
                     const value = formatCellValue(resourceValue(row, col.key))
+                    if (index === 0 && isRowInteractive) {
+                      return (
+                        <td key={col.key}>
+                          <button type="button" className="table-row-button">
+                            {value}
+                          </button>
+                        </td>
+                      )
+                    }
+
                     if (col.key === 'supplierName') {
                       return (
                         <td key={col.key}>
                           <button
                             type="button"
                             className="link-action table-link-action"
-                            onClick={(e) => {
-                              e.stopPropagation()
+                            onClick={() => {
                               openRelatedDetails('suppliers', { id: (row as Record<string, unknown>).supplierId as number } as ResourceItem)
                             }}
                           >
@@ -114,36 +110,36 @@ export function ResourceTable({
                       )
                     }
 
-                    if (badgeColumns.has(col.key)) {
-                      return (
-                        <td key={col.key}>
-                          <span className={`badge ${badgeClassName(value)}`}>{value}</span>
-                        </td>
-                      )
-                    }
-
                     return <td key={col.key}>{value}</td>
                   })}
                   {!hideActions && (
                     <td className="table-action-cell">
-                      <div className="row-actions" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className="table-action" onClick={() => openEditModal(resourceKey, row)} title="Edit">
+                      <div className="row-actions">
+                        <button type="button" className="table-action" onClick={() => {
+                          openEditModal(resourceKey, row)
+                        }} title="Edit">
                           <IconEdit />
                         </button>
 
                         {resourceKey === 'contracts' && isContractLike(row) && row.status !== 'TERMINATED' && (
-                          <button type="button" className="table-action" onClick={() => terminateContract(row)} title="Terminate Contract">
+                          <button type="button" className="table-action" onClick={() => {
+                            terminateContract(row)
+                          }} title="Terminate Contract">
                             <IconTerminate />
                           </button>
                         )}
 
                         {resourceKey === 'contacts' && isContactLike(row) && !row.primary && (
-                          <button type="button" className="table-action" onClick={() => setPrimaryContact(row as Contact)} title="Set Primary Contact">
+                          <button type="button" className="table-action" onClick={() => {
+                            setPrimaryContact(row)
+                          }} title="Set Primary Contact">
                             <IconPrimary />
                           </button>
                         )}
 
-                        <button type="button" className="table-action table-action-danger" onClick={() => deleteItem(resourceKey, row)} title="Delete">
+                        <button type="button" className="table-action table-action-danger" onClick={() => {
+                          deleteItem(resourceKey, row)
+                        }} title="Delete">
                           <IconTrash />
                         </button>
 
@@ -151,7 +147,13 @@ export function ResourceTable({
                           <button
                             type="button"
                             className="table-action"
-                            onClick={() => (isExpanded ? closeDetails?.(resourceKey) : loadDetails(resourceKey, row))}
+                            onClick={() => {
+                              if (isExpanded) {
+                                closeDetails?.(resourceKey)
+                              } else {
+                                loadDetails(resourceKey, row)
+                              }
+                            }}
                             title={isExpanded ? 'Collapse details' : 'Expand details'}
                           >
                             {isExpanded ? <IconChevronUp /> : <IconChevronDown />}
