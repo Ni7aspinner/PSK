@@ -51,6 +51,30 @@ mvn install
 
 ### Database
 
+Remote Database configuration:
+
+Ask Nojus for .env file to use
+
+Place the file under ```PSK/Backend```
+
+Should be all set
+
+To Connect Intellij IDEA to the DB, do the following:
+
+1. Navigate to View -> Tool Windows -> Database 
+2. Press the '+' icon
+3. Data Source -> PostgreSQL
+4. Navigate to SSH/SSL
+5. Select "Use SSL"
+6. Make sure the "Mode" is "Required"
+7. Go back to General
+8. Select "URL only"
+9. From the `.env` file paste in the URL
+10. Use the Username and Password from the `.env` file
+11. Should be all set
+
+For local testing (Outdated, have to use the unmodified application.properties with hardcoded db info):
+
 Start PostgreSQL:
 
 ```bash
