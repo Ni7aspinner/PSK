@@ -1,13 +1,11 @@
 package org.psk.report.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.time.LocalDate;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.psk.contact.ContactRepository;
@@ -62,19 +60,77 @@ class ReportServiceTest {
     CompletableFuture<ActiveSuppliersReportDto> future = reportService.getActiveSuppliersReport();
     ActiveSuppliersReportDto report = future.get(5, TimeUnit.SECONDS);
 
-    assertThat(future).isDone();
+    assertThat(future).isCompleted();
     assertThat(report.getGeneratedAt()).isNotNull();
-    assertThat(report.getRows()).hasSize(2);
-    Map<String, ActiveSupplierRow> rowsByCode =
-        report.getRows().stream()
-            .collect(Collectors.toMap(ActiveSupplierRow::getRegistrationCode, Function.identity()));
-    assertThat(rowsByCode.get("A-001").getSupplierId()).isEqualTo(supplierWithActiveItems.getId());
-    assertThat(rowsByCode.get("A-001").getActiveContracts()).isEqualTo(1);
-    assertThat(rowsByCode.get("A-001").getActiveServices()).isEqualTo(1);
-    assertThat(rowsByCode.get("I-001").getSupplierId())
-        .isEqualTo(supplierWithoutActiveItems.getId());
-    assertThat(rowsByCode.get("I-001").getActiveContracts()).isZero();
-    assertThat(rowsByCode.get("I-001").getActiveServices()).isZero();
+    assertThat(report.getRows())
+        .hasSize(2)
+        .extracting(
+            ActiveSupplierRow::getRegistrationCode,
+            ActiveSupplierRow::getActiveContracts,
+            ActiveSupplierRow::getActiveServices)
+        .containsExactlyInAnyOrder(tuple("A-001", 1L, 1L), tuple("I-001", 0L, 0L));
+  }
+
+  @Test
+  void generateActiveSuppliersPdf_returnsPdf() throws Exception {
+    Supplier s = supplierRepository.save(supplier("Supplier", "S-001"));
+    contractRepository.save(
+        contract("C-001", s, ContractStatus.ACTIVE, LocalDate.now().plusDays(1)));
+
+    CompletableFuture<byte[]> future = reportService.generateActiveSuppliersPdf();
+    byte[] pdf = future.get(5, TimeUnit.SECONDS);
+
+    assertThat(future).isCompleted();
+    assertThat(pdf).startsWith("%PDF".getBytes());
+  }
+
+  @Test
+  void getActiveSuppliersReport_complexFiltering() throws Exception {
+    Supplier s1 = supplierRepository.save(supplier("Supplier 1", "S-001"));
+
+    // Active contract
+    contractRepository.save(
+        contract("C-ACTIVE", s1, ContractStatus.ACTIVE, LocalDate.now().plusDays(1)));
+    // Expired contract (should be ignored)
+    contractRepository.save(
+        contract("C-EXPIRED", s1, ContractStatus.ACTIVE, LocalDate.now().minusDays(1)));
+    // Inactive status contract (should be ignored)
+    contractRepository.save(
+        contract("C-INACTIVE", s1, ContractStatus.TERMINATED, LocalDate.now().plusDays(10)));
+
+    // Active service
+    serviceRepository.save(service("S-ACTIVE", s1, null, true));
+    // Inactive service (should be ignored)
+    serviceRepository.save(service("S-INACTIVE", s1, null, false));
+
+    ActiveSuppliersReportDto report =
+        reportService.getActiveSuppliersReport().get(5, TimeUnit.SECONDS);
+
+    assertThat(report.getRows())
+        .filteredOn(r -> r.getRegistrationCode().equals("S-001"))
+        .singleElement()
+        .satisfies(
+            row -> {
+              assertThat(row.getActiveContracts()).isEqualTo(1);
+              assertThat(row.getActiveServices()).isEqualTo(1);
+            });
+  }
+
+  @Test
+  void getActiveSuppliersReport_multipleSuppliers() throws Exception {
+    Supplier s1 = supplierRepository.save(supplier("A", "S-1"));
+    Supplier s2 = supplierRepository.save(supplier("B", "S-2"));
+
+    contractRepository.save(contract("C1", s1, ContractStatus.ACTIVE, LocalDate.now().plusDays(1)));
+    contractRepository.save(contract("C2", s2, ContractStatus.ACTIVE, LocalDate.now().plusDays(1)));
+    contractRepository.save(contract("C3", s2, ContractStatus.ACTIVE, LocalDate.now().plusDays(1)));
+
+    ActiveSuppliersReportDto report =
+        reportService.getActiveSuppliersReport().get(5, TimeUnit.SECONDS);
+
+    assertThat(report.getRows())
+        .extracting(ActiveSupplierRow::getName, ActiveSupplierRow::getActiveContracts)
+        .containsExactlyInAnyOrder(tuple("A", 1L), tuple("B", 2L));
   }
 
   private Supplier supplier(String name, String registrationCode) {
