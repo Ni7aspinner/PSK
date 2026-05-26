@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Dashboard } from './Dashboard'
 import { backendApi } from '../api/backendApi'
 
@@ -172,6 +173,8 @@ describe('Dashboard', () => {
     window.URL.revokeObjectURL = vi.fn()
 
     api.getActiveSuppliersPdf.mockResolvedValue(pdfBlob)
+
+    const user = userEvent.setup()
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
