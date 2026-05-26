@@ -5,8 +5,12 @@ import { backendApi } from '../api/backendApi'
 vi.mock('../api/backendApi', () => ({
   backendApi: {
     createContact: vi.fn(),
+    createContract: vi.fn(),
+    createService: vi.fn(),
     createSupplier: vi.fn(),
     deleteContact: vi.fn(),
+    deleteContract: vi.fn(),
+    deleteService: vi.fn(),
     deleteSupplier: vi.fn(),
     getActiveSuppliersPdf: vi.fn(),
     getContact: vi.fn(),
@@ -22,6 +26,7 @@ vi.mock('../api/backendApi', () => ({
     setPrimaryContact: vi.fn(),
     terminateContract: vi.fn(),
     updateContact: vi.fn(),
+    updateContract: vi.fn(),
     updateService: vi.fn(),
     updateSupplier: vi.fn(),
   },
@@ -77,6 +82,13 @@ function mockLoad() {
   api.getContacts.mockResolvedValue([contact])
   api.getContracts.mockResolvedValue([contract])
   api.getServices.mockResolvedValue([service])
+  api.getSupplierContacts.mockResolvedValue([contact])
+  api.getSupplierServices.mockResolvedValue([service])
+}
+
+async function openSupplierWorkspace() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Acme' }))
+  await screen.findByRole('heading', { name: 'Acme' })
 }
 
 describe('Dashboard', () => {
@@ -85,23 +97,24 @@ describe('Dashboard', () => {
     mockLoad()
   })
 
-  it('loads resources and switches between resource pages', async () => {
+  it('loads suppliers and opens the supplier workspace', async () => {
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
     expect(await screen.findByText('Acme')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Suppliers 1/ })).toBeInTheDocument()
+    expect(screen.getByText('Suppliers · 1')).toBeInTheDocument()
+
+    await openSupplierWorkspace()
+    expect(api.getSupplierContacts).toHaveBeenCalledWith(session, 1)
+    expect(api.getContracts).toHaveBeenCalledWith(session)
+    expect(api.getSupplierServices).toHaveBeenCalledWith(session, 1)
+
     expect(screen.getByRole('button', { name: /Contacts 1/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Contracts 1/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Services 1/ })).toBeInTheDocument()
-
     fireEvent.click(screen.getByRole('button', { name: /Contracts 1/ }))
-
     expect(screen.getByText('C-001')).toBeInTheDocument()
     expect(screen.getByText('Support Agreement')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '1 records' })).toBeInTheDocument()
   })
 
-  it('creates, edits, expands, and deletes supplier records', async () => {
+  it('creates, edits, opens, and deletes supplier records', async () => {
     const updatedSupplier = { ...supplier, name: 'Acme Updated' }
     const newSupplier = {
       id: 2,
@@ -138,7 +151,7 @@ describe('Dashboard', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Acme Updated' } })
     fireEvent.click(screen.getByRole('button', { name: 'Update supplier' }))
 
-    expect(await screen.findByText('Acme Updated')).toBeInTheDocument()
+    expect(await screen.findAllByText('Acme Updated')).not.toHaveLength(0)
     expect(api.updateSupplier).toHaveBeenCalledWith(session, 1, {
       email: 'ops@acme.test',
       name: 'Acme Updated',
@@ -146,17 +159,9 @@ describe('Dashboard', () => {
       version: 4,
     })
 
-    fireEvent.click(screen.getAllByTitle('Expand details')[0])
-
-    expect(await screen.findByRole('heading', { name: 'Acme Updated' })).toBeInTheDocument()
-    expect(screen.getByText('Related contracts')).toBeInTheDocument()
-    expect(screen.getByText('Related contacts')).toBeInTheDocument()
-    expect(screen.getByText('Related services')).toBeInTheDocument()
-    expect(api.getSupplier).toHaveBeenCalledWith(session, 1)
-    expect(api.getSupplierContacts).toHaveBeenCalledWith(session, 1)
-    expect(api.getSupplierServices).toHaveBeenCalledWith(session, 1)
-
-    fireEvent.click(screen.getAllByTitle('Delete')[0])
+    fireEvent.click(screen.getByRole('button', { name: /Close/ }))
+    const updatedRow = await screen.findByRole('row', { name: /Acme Updated/ })
+    fireEvent.click(within(updatedRow).getByTitle('Delete'))
 
     await waitFor(() => {
       expect(screen.queryByText('Acme Updated')).not.toBeInTheDocument()
@@ -177,7 +182,7 @@ describe('Dashboard', () => {
 
     await screen.findByText('Acme')
 
-    fireEvent.click(screen.getAllByTitle('Expand details')[0])
+    await openSupplierWorkspace()
 
     const action = await screen.findByRole('button', {
       name: 'Open active suppliers PDF',
@@ -201,7 +206,7 @@ describe('Dashboard', () => {
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
     await screen.findByText('Acme')
-    fireEvent.click(screen.getAllByTitle('Expand details')[0])
+    await openSupplierWorkspace()
 
     const action = await screen.findByRole('button', {
       name: 'Open active suppliers PDF',
@@ -219,10 +224,10 @@ describe('Dashboard', () => {
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
-    await screen.findByText('Acme')
+    await openSupplierWorkspace()
     fireEvent.click(screen.getByRole('button', { name: /Contracts 1/ }))
 
-    const table = screen.getByRole('table')
+    const table = screen.getAllByRole('table').at(-1)!
     expect(within(table).getByText('ACTIVE')).toBeInTheDocument()
 
     fireEvent.click(screen.getByTitle('Terminate Contract'))
@@ -236,11 +241,12 @@ describe('Dashboard', () => {
   it('preserves inactive services when editing without changing status', async () => {
     const inactiveService = { ...service, active: false, name: 'Archive' }
     api.getServices.mockResolvedValue([inactiveService])
+    api.getSupplierServices.mockResolvedValue([inactiveService])
     api.updateService.mockResolvedValue(inactiveService)
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
-    await screen.findByText('Acme')
+    await openSupplierWorkspace()
     fireEvent.click(screen.getByRole('button', { name: /Services 1/ }))
     fireEvent.click(screen.getByTitle('Edit'))
     fireEvent.click(screen.getByRole('button', { name: 'Update service' }))
@@ -262,7 +268,7 @@ describe('Dashboard', () => {
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
-    await screen.findByText('Acme')
+    await openSupplierWorkspace()
     fireEvent.click(screen.getByRole('button', { name: /Services 1/ }))
     fireEvent.click(screen.getByTitle('Edit'))
     fireEvent.change(screen.getByLabelText('Contract'), { target: { value: '' } })
@@ -331,15 +337,13 @@ describe('Dashboard', () => {
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
     expect(await screen.findByText('Acme')).toBeInTheDocument()
-    
-    const expandBtn = screen.getAllByTitle('Expand details')[0]
-    fireEvent.click(expandBtn)
-    
+
+    fireEvent.click(screen.getByRole('button', { name: 'Acme' }))
+
     expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument()
-    
-    const collapseBtn = screen.getAllByTitle('Collapse details')[0]
-    fireEvent.click(collapseBtn)
-    
+
+    fireEvent.click(screen.getByRole('button', { name: /Close/ }))
+
     expect(screen.queryByRole('heading', { name: 'Acme' })).not.toBeInTheDocument()
   })
 })

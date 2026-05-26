@@ -71,13 +71,6 @@
   width: 100%;
   margin: 0 auto;
 }
-
-.landing-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .landing-logo-icon {
   width: 20px;
   height: 20px;
@@ -102,32 +95,6 @@
 .landing-logo-slash {
   color: var(--ink-tertiary);
   font-weight: 300;
-}
-
-.landing-header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.landing-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: transparent;
-  padding: 4px 0;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--ink-subtle);
-}
-
-.landing-status-dot {
-  width: 5px;
-  height: 5px;
-  background-color: var(--semantic-success);
-  border-radius: 50%;
-  box-shadow: 0 0 6px var(--semantic-success);
-  animation: pulseGlow 2.5s infinite ease-in-out;
 }
 
 .landing-shell {
@@ -189,13 +156,6 @@
   font-style: italic;
   font-weight: 400;
   color: var(--ink-subtle);
-}
-
-.brand-subtitle {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--ink-muted);
-  max-width: 540px;
 }
 
 .sandbox-widget {
@@ -289,13 +249,6 @@
   color: var(--ink);
   transform: translateX(4px);
 }
-
-.sandbox-item-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 .sandbox-item-icon {
   width: 20px;
   height: 20px;
@@ -339,7 +292,8 @@
   letter-spacing: 0.05em;
 }
 
-.badge-active {
+.badge-active,
+.auth-success-box {
   color: var(--semantic-success);
 }
 
@@ -347,38 +301,9 @@
   color: var(--warning);
 }
 
-.badge-terminated {
+.badge-terminated,
+.auth-alert-box {
   color: var(--danger);
-}
-
-.brand-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
-  max-width: 480px;
-  border-top: 1px solid var(--hairline);
-  padding-top: 24px;
-}
-
-.metric-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.metric-value {
-  font-family: var(--font-mono);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.metric-label {
-  font-size: 10px;
-  color: var(--ink-subtle);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
 }
 
 .landing-auth-panel {
@@ -417,6 +342,17 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.auth-mode-kicker {
+  margin: 0;
+}
+
+.auth-mode-title {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 800;
 }
 
 .auth-mark-hidden {
@@ -535,7 +471,8 @@
   text-decoration: underline;
 }
 
-.auth-alert-box, .auth-success-box {
+.auth-alert-box,
+.auth-success-box {
   margin: 0;
   border: none;
   border-radius: 0;
@@ -545,14 +482,6 @@
   line-height: 1.4;
   background: transparent;
   animation: slideUpShort 0.25s ease;
-}
-
-.auth-alert-box {
-  color: var(--danger);
-}
-
-.auth-success-box {
-  color: var(--semantic-success);
 }
 
 @keyframes pulseGlow {
@@ -611,15 +540,9 @@
   .brand-hero h1 {
     font-size: clamp(32px, 5.5vw, 40px);
   }
-  .brand-subtitle {
-    margin: 0 auto;
-  }
   .sandbox-widget {
     width: 100%;
     max-width: 480px;
-    margin: 0 auto;
-  }
-  .brand-metrics {
     margin: 0 auto;
   }
   .landing-auth-panel {
@@ -638,10 +561,6 @@
     align-items: center;
     padding: 24px 16px 8px;
   }
-  .landing-header-right {
-    width: 100%;
-    justify-content: space-between;
-  }
   .landing-shell {
     padding: 16px;
   }
@@ -650,10 +569,5 @@
   }
   .brand-hero h1 {
     font-size: 28px;
-  }
-  .brand-metrics {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    text-align: center;
   }
 }

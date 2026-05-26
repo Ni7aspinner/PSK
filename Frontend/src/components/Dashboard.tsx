@@ -3,7 +3,6 @@ import heroMark from '../assets/hero.png'
 import { backendApi } from '../api/backendApi'
 import {
   resourceConfig,
-  navItems,
   type Contact,
   type ContactCreatePayload,
   type ContactUpdatePayload,
@@ -15,6 +14,7 @@ import {
   type ResourceKey,
   type ResourceMode,
   type ResourcePayload,
+  type ResourceCreateDefaults,
   type Resources,
   type Service,
   type ServiceCreatePayload,
@@ -23,6 +23,7 @@ import {
   type Supplier,
   type SupplierCreatePayload,
   type SupplierUpdatePayload,
+  type WorkspaceResourceKey,
 } from '../models/resourceConfig'
 import {
   asRows,
@@ -36,6 +37,7 @@ import {
 import { ResourceTable } from './ResourceTable'
 import { FormModal } from './FormModal'
 import { ThemeToggle } from './ThemeToggle'
+import { SupplierList } from './SupplierList'
 
 type DashboardProps = Readonly<{
   session: Session
@@ -45,9 +47,16 @@ type DashboardProps = Readonly<{
 interface FormModalState {
   mode: ResourceMode
   resourceKey: ResourceKey
+  defaultValues?: ResourceCreateDefaults
 }
 
 const initialResources: Resources = { suppliers: [], contacts: [], contracts: [], services: [] }
+const workspaceColumnKeys = {
+  contacts: ['firstName', 'lastName', 'position', 'email', 'phone', 'primaryLabel'],
+  contracts: ['contractNumber', 'title', 'startDate', 'endDate', 'status'],
+  services: ['name', 'description', 'activeLabel'],
+} satisfies Record<WorkspaceResourceKey, string[]>
+const workspaceTabs: WorkspaceResourceKey[] = ['contacts', 'contracts', 'services']
 
 function searchableValue(value: unknown) {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -55,6 +64,20 @@ function searchableValue(value: unknown) {
   }
 
   return ''
+}
+
+function filterRows<T extends ResourceItem>(rows: T[], query: string) {
+  if (!query) return rows
+  const q = query.toLowerCase()
+  return rows.filter((row) => Object.values(row).some((val) => searchableValue(val).includes(q)))
+}
+
+function isWorkspaceTab(resourceKey: ResourceKey): resourceKey is WorkspaceResourceKey {
+  return workspaceTabs.includes(resourceKey as WorkspaceResourceKey)
+}
+
+function isSupplier(item: ResourceItem | null | undefined): item is Supplier {
+  return Boolean(item && 'registrationCode' in item)
 }
 
 async function ensurePdfBlob(blob: Blob) {
@@ -73,8 +96,17 @@ function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
   )
 }
 
+function replaceExpandedDetailItem(
+  details: Partial<Record<ResourceKey, ResourceDetail | null>>,
+  resourceKey: ResourceKey,
+  item: ResourceItem,
+) {
+  const detail = details[resourceKey]
+  return detail?.item?.id === item.id ? { ...details, [resourceKey]: { ...detail, item } } : details
+}
+
 function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
-  const [activePage, setActivePage] = useState<ResourceKey>('suppliers')
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceResourceKey>('contacts')
   const [resources, setResources] = useState(initialResources)
   const [selected, setSelected] = useState<Partial<Record<ResourceKey, ResourceItem | null>>>({})
   const [expandedDetails, setExpandedDetails] = useState<Partial<Record<ResourceKey, ResourceDetail | null>>>({})
@@ -83,43 +115,18 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const [error, setError] = useState('')
   const [formModal, setFormModal] = useState<FormModalState | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('')
 
-  const counts = useMemo(
-    () => ({
-      suppliers: resources.suppliers.length,
-      contacts: resources.contacts.length,
-      contracts: resources.contracts.length,
-      services: resources.services.length,
-    }),
-    [resources],
-  )
+  const config = resourceConfig.suppliers
+  const enrichedRows = useMemo(() => getEnrichedRows('suppliers', resources), [resources])
+  const filteredRows = useMemo(() => filterRows(enrichedRows, searchQuery), [enrichedRows, searchQuery])
 
-  const enrichedRows = useMemo(() => getEnrichedRows(activePage, resources), [activePage, resources])
-
-  const filteredRows = useMemo(() => {
-    if (!searchQuery) return enrichedRows
-    const q = searchQuery.toLowerCase()
-    return enrichedRows.filter((row) => {
-      return Object.values(row).some((val) => searchableValue(val).includes(q))
-    })
-  }, [enrichedRows, searchQuery])
-
-  const loadDashboard = useCallback(async () => {
+  const loadSuppliers = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const [suppliers, contacts, contracts, services] = await Promise.all([
-        backendApi.getSuppliers(session),
-        backendApi.getContacts(session),
-        backendApi.getContracts(session),
-        backendApi.getServices(session),
-      ])
-      setResources({
-        suppliers: asRows(suppliers),
-        contacts: asRows(contacts),
-        contracts: asRows(contracts),
-        services: asRows(services),
-      })
+      const suppliers = await backendApi.getSuppliers(session)
+      setResources((current) => ({ ...current, suppliers: asRows(suppliers) }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load resources.')
     } finally {
@@ -128,13 +135,13 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   }, [session])
 
   useEffect(() => {
-    loadDashboard()
-  }, [loadDashboard])
+    loadSuppliers()
+  }, [loadSuppliers])
 
   useEffect(() => {
-    globalThis.addEventListener('focus', loadDashboard)
-    return () => globalThis.removeEventListener('focus', loadDashboard)
-  }, [loadDashboard])
+    globalThis.addEventListener('focus', loadSuppliers)
+    return () => globalThis.removeEventListener('focus', loadSuppliers)
+  }, [loadSuppliers])
 
   const runAction = async (label: string, action: () => Promise<void>) => {
     setBusyAction(label)
@@ -148,11 +155,36 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     }
   }
 
+  const loadSupplierRelations = (supplier: Supplier) => {
+    runAction(`supplier-relations-${supplier.id}`, async () => {
+      const [contacts, allContracts, services] = await Promise.all([
+        backendApi.getSupplierContacts(session, supplier.id).then(asRows<Contact>),
+        backendApi.getContracts(session).then(asRows<Contract>),
+        backendApi.getSupplierServices(session, supplier.id).then(asRows<Service>),
+      ])
+
+      setResources((current) => ({
+        ...current,
+        contacts,
+        contracts: contractsForSupplier(allContracts, supplier.id),
+        services,
+      }))
+    })
+  }
+
+  const openSupplierWorkspace = (supplier: Supplier, tab: WorkspaceResourceKey = 'contacts') => {
+    setSelected((current) => ({ ...current, suppliers: supplier }))
+    setSearchQuery('')
+    setWorkspaceSearchQuery('')
+    loadSupplierRelations(supplier)
+    setWorkspaceTab(tab)
+  }
+
   const closeFormModal = () => setFormModal(null)
 
-  const openCreateModal = (resourceKey: ResourceKey) => {
+  const openCreateModal = (resourceKey: ResourceKey, defaultValues?: ResourceCreateDefaults) => {
     setSelected((current) => ({ ...current, [resourceKey]: null }))
-    setFormModal({ mode: 'create', resourceKey })
+    setFormModal({ mode: 'create', resourceKey, defaultValues })
   }
 
   const openEditModal = (resourceKey: ResourceKey, item: ResourceItem) => {
@@ -202,6 +234,15 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
         ...current,
         [resourceKey]: [...current[resourceKey], created],
       }))
+      if (resourceKey === 'services') {
+        const service = created as Service
+        setExpandedDetails((curr) => {
+          const detail = curr.contracts
+          return detail && detail.item?.id === service.contractId
+            ? { ...curr, contracts: { ...detail, services: [...(detail.services ?? []), service] } }
+            : curr
+        })
+      }
       closeFormModal()
     })
   }
@@ -222,11 +263,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
         [resourceKey]: replaceById(current[resourceKey], updated),
       }))
       setSelected((current) => ({ ...current, [resourceKey]: updated }))
-      setExpandedDetails((current) =>
-        current[resourceKey]?.item?.id === updated.id
-          ? { ...current, [resourceKey]: { ...current[resourceKey], item: updated } }
-          : current,
-      )
+      setExpandedDetails((current) => replaceExpandedDetailItem(current, resourceKey, updated))
       closeFormModal()
     })
   }
@@ -250,61 +287,58 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const loadDetails = (resourceKey: ResourceKey, item: ResourceItem) => {
     runAction(`details-${resourceKey}-${item.id}`, async () => {
       const detail = await getResource(resourceKey, item)
-      const nextDetail: ResourceDetail = { item: detail }
-
-      if (resourceKey === 'suppliers') {
-        const supplier = detail as Supplier
-        nextDetail.contracts = contractsForSupplier(resources.contracts, supplier.id)
-        nextDetail.contacts = await backendApi.getSupplierContacts(session, detail.id)
-        nextDetail.services = await backendApi.getSupplierServices(session, detail.id)
-      } else if (resourceKey === 'contacts') {
-        const contact = detail as Contact
-        nextDetail.supplier = resources.suppliers.find((s) => s.id === contact.supplierId)
-      } else if (resourceKey === 'contracts') {
-        const contract = detail as Contract
-        nextDetail.supplier = resources.suppliers.find((s) => s.id === contract.supplierId)
-        nextDetail.services = servicesForContract(resources.services, contract)
-      } else if (resourceKey === 'services') {
-        const service = detail as Service
-        nextDetail.supplier = resources.suppliers.find((s) => s.id === service.supplierId)
-        nextDetail.contract = resources.contracts.find((c) => c.id === service.contractId)
+      const next: ResourceDetail = { item: detail }
+      if (resourceKey !== 'suppliers') {
+        if (resourceKey === 'contacts') {
+          const contact = detail as Contact
+          next.supplier = resources.suppliers.find((s) => s.id === contact.supplierId)
+        } else if (resourceKey === 'contracts') {
+          const contract = detail as Contract
+          next.supplier = resources.suppliers.find((s) => s.id === contract.supplierId)
+          next.services = servicesForContract(resources.services, contract)
+        } else {
+          const service = detail as Service
+          next.supplier = resources.suppliers.find((s) => s.id === service.supplierId)
+          next.contract = resources.contracts.find((c) => c.id === service.contractId)
+        }
       }
-
-      setExpandedDetails((current) => ({ ...current, [resourceKey]: nextDetail }))
+      setExpandedDetails((curr) => ({ ...curr, [resourceKey]: next }))
+      setSelected((curr) => ({ ...curr, [resourceKey]: detail }))
     })
   }
 
-  const closeDetails = (resourceKey: ResourceKey) =>
-    setExpandedDetails((current) => ({ ...current, [resourceKey]: null }))
+  const closeDetails = (resourceKey: ResourceKey) => {
+    setExpandedDetails((curr) => ({ ...curr, [resourceKey]: null }))
+    if (resourceKey === 'suppliers') {
+      setSelected((curr) => ({ ...curr, suppliers: null }))
+    }
+  }
 
   const terminateContract = (contract: Contract) => {
     runAction(`terminate-contract-${contract.id}`, async () => {
-      const terminated = await backendApi.terminateContract(session, contract.id)
-      const nextContract = { ...contract, ...terminated, status: terminated?.status ?? 'TERMINATED' }
-      setResources((current) => ({ ...current, contracts: replaceById(current.contracts, nextContract) }))
-      setSelected((current) => ({ ...current, contracts: nextContract }))
-      setExpandedDetails((current) =>
-        current.contracts?.item?.id === nextContract.id
-          ? { ...current, contracts: { ...current.contracts, item: nextContract } }
-          : current,
-      )
+      const res = await backendApi.terminateContract(session, contract.id)
+      const next = { ...contract, ...res, status: res?.status ?? 'TERMINATED' }
+      setResources((curr) => ({ ...curr, contracts: replaceById(curr.contracts, next) }))
+      setSelected((curr) => ({ ...curr, contracts: next }))
+      setExpandedDetails((curr) => replaceExpandedDetailItem(curr, 'contracts', next))
     })
   }
 
   const setPrimaryContact = (contact: Contact) => {
     runAction(`primary-contact-${contact.id}`, async () => {
-      const primaryContact = await backendApi.setPrimaryContact(session, contact.id)
-      setResources((current) => ({
-        ...current,
-        contacts: updatePrimaryContacts(current.contacts, primaryContact),
-      }))
-      setSelected((current) => ({ ...current, contacts: primaryContact }))
-      setExpandedDetails((current) =>
-        current.contacts?.item?.id === primaryContact.id
-          ? { ...current, contacts: { ...current.contacts, item: primaryContact } }
-          : current,
-      )
+      const primary = await backendApi.setPrimaryContact(session, contact.id)
+      const update = (rows: Contact[]) => updatePrimaryContacts(rows, primary)
+      setResources((curr) => ({ ...curr, contacts: update(curr.contacts) }))
+      setSelected((curr) => ({ ...curr, contacts: primary }))
+      setExpandedDetails((curr) => replaceExpandedDetailItem(curr, 'contacts', primary))
     })
+  }
+
+  const selectedSupplier = isSupplier(selected.suppliers) ? selected.suppliers : undefined
+
+  const switchWorkspaceTab = (tab: WorkspaceResourceKey, query = '') => {
+    setWorkspaceTab(tab)
+    setWorkspaceSearchQuery(query)
   }
 
   const openActiveSuppliersPdf = () => {
@@ -318,14 +352,52 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   }
 
   const openRelatedDetails = (resourceKey: ResourceKey, item: ResourceItem) => {
-    setActivePage(resourceKey)
-    loadDetails(resourceKey, item)
+    if (resourceKey === 'suppliers') {
+      if (selected.suppliers?.id === item.id) {
+        closeDetails('suppliers')
+      } else {
+        openSupplierWorkspace(resources.suppliers.find((s) => s.id === item.id) ?? (item as Supplier))
+      }
+      return
+    }
+
+    if (isWorkspaceTab(resourceKey)) {
+      switchWorkspaceTab(resourceKey)
+      loadDetails(resourceKey, item)
+    }
   }
 
-  const config = resourceConfig[activePage]
+  const workspaceRows: ResourceItem[] = selectedSupplier
+    ? getEnrichedRows(workspaceTab, {
+        suppliers: [selectedSupplier],
+        contacts: resources.contacts,
+        contracts: resources.contracts,
+        services: resources.services,
+      })
+    : []
+  const filteredWorkspaceRows = filterRows(workspaceRows, workspaceSearchQuery)
 
+  const openSupplierCreateModal = (resourceKey: WorkspaceResourceKey) =>
+    selectedSupplier && openCreateModal(resourceKey, { supplierId: selectedSupplier.id })
 
-  const canOpenActiveSuppliersPdf = session.role?.toUpperCase() === 'ADMIN' && activePage === 'suppliers';
+  const tableActions = {
+    busyAction,
+    deleteItem,
+    loadDetails,
+    closeDetails,
+    openRelatedDetails,
+    openEditModal,
+    setPrimaryContact,
+    terminateContract,
+  }
+  const supplierMeta = selectedSupplier
+    ? [
+        ['Code', selectedSupplier.registrationCode],
+        ['Email', selectedSupplier.email || '-'],
+        ['Phone', selectedSupplier.phone || '-'],
+      ]
+    : []
+  const canOpenActiveSuppliersPdf = session.role?.toUpperCase() === 'ADMIN'
 
   return (
     <main className="dashboard-screen">
@@ -349,22 +421,6 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
           </div>
         </header>
 
-        <nav className="dashboard-nav" aria-label="Resource pages">
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={activePage === item.key ? 'nav-tab nav-tab-active' : 'nav-tab'}
-              onClick={() => {
-                setActivePage(item.key)
-                setSearchQuery('')
-              }}>
-              {item.label}
-              <span>{counts[item.key]}</span>
-            </button>
-          ))}
-        </nav>
-
         {error && <p className="alert-text">{error}</p>}
 
         {loading ? (
@@ -373,52 +429,128 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
           </section>
         ) : (
           <section className="dashboard-panel resource-main" aria-label={config.title}>
-            <div className="resource-heading">
-              <div>
-                <p className="kicker">{config.title}</p>
-                <h2>{filteredRows.length} records</h2>
-              </div>
-              <div className="heading-actions">
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder={`Search ${config.title.toLowerCase()}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+            <div className="split-pane-layout">
+              {/* Left Pane (Master Table) */}
+              <div className={`master-pane ${selectedSupplier ? '' : 'master-pane-full'}`}>
+                <div className="resource-heading supplier-list-heading">
+                  <div className="supplier-list-toolbar">
+                    <div>
+                      <p className="kicker supplier-count-kicker">{config.title} · {filteredRows.length}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="primary-action resource-create supplier-create-action"
+                      onClick={() => openCreateModal('suppliers')}>
+                      Create {config.singular}
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder={`Search ${config.title.toLowerCase()}...`}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <SupplierList
+                  config={config}
+                  isCompact={Boolean(selectedSupplier)}
+                  onDelete={(supplier) => deleteItem('suppliers', supplier)}
+                  onEdit={(supplier) => openEditModal('suppliers', supplier)}
+                  onSelect={(supplier) => openRelatedDetails('suppliers', supplier)}
+                  rows={filteredRows}
+                  selected={selectedSupplier}
                 />
-                <button
-                  type="button"
-                  className="primary-action resource-create"
-                  onClick={() => openCreateModal(activePage)}>
-                  Create {config.singular}
-                </button>
-                {canOpenActiveSuppliersPdf && (
-                  <button
-                    type="button"
-                    className="primary-action"
-                    style={{ marginLeft: 8 }}
-                    onClick={openActiveSuppliersPdf}
-                  >
-                    Open active suppliers PDF
-                  </button>
-                )}
               </div>
+
+              {/* Right Pane (Supplier Workspace) */}
+              {selectedSupplier && (
+                <div className="workspace-pane">
+                  <div className="workspace-content-pane">
+                    <div className="workspace-profile-header">
+                      <div>
+                        <span className="kicker">Supplier Hub</span>
+                        <h2 className="supplier-profile-title">
+                          {selectedSupplier.name}
+                        </h2>
+                        <div className="profile-meta-grid">
+                          {supplierMeta.map(([label, value]) => (
+                            <div className="profile-meta-item" key={label}>
+                              <span className="profile-meta-label">{label}</span>
+                              <span className="profile-meta-value">{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="heading-actions">
+                        <button
+                          type="button"
+                          className="link-action workspace-link-action"
+                          onClick={() => openEditModal('suppliers', selectedSupplier)}>
+                          Edit supplier
+                        </button>
+                        {canOpenActiveSuppliersPdf && (
+                          <button
+                            type="button"
+                            className="link-action workspace-link-action"
+                            onClick={openActiveSuppliersPdf}>
+                            Open active suppliers PDF
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="link-action workspace-link-action close-supplier-action"
+                          onClick={() => closeDetails('suppliers')}>
+                          ✕ Close
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="dashboard-nav">
+                      {workspaceTabs.map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          className={`nav-tab ${workspaceTab === tab ? 'nav-tab-active' : ''}`}
+                          onClick={() => switchWorkspaceTab(tab)}>
+                          {resourceConfig[tab].title} <span>{resources[tab].length}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="workspace-content-pane">
+                      <div className="resource-heading workspace-section-heading">
+                        <h4>{resourceConfig[workspaceTab].title}</h4>
+                        <div className="heading-actions">
+                          <input
+                            type="text"
+                            className="search-input"
+                            placeholder={`Search ${resourceConfig[workspaceTab].title.toLowerCase()}...`}
+                            value={workspaceSearchQuery}
+                            onChange={(e) => setWorkspaceSearchQuery(e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            className="primary-action"
+                            onClick={() => openSupplierCreateModal(workspaceTab)}>
+                            Add {resourceConfig[workspaceTab].singular}
+                          </button>
+                        </div>
+                      </div>
+                      <ResourceTable
+                        {...tableActions}
+                        columnKeys={workspaceColumnKeys[workspaceTab]}
+                        config={resourceConfig[workspaceTab]}
+                        expandedDetails={expandedDetails[workspaceTab]}
+                        resourceKey={workspaceTab}
+                        rows={filteredWorkspaceRows}
+                        selected={selected[workspaceTab]}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <ResourceTable
-              busyAction={busyAction}
-              config={config}
-              deleteItem={deleteItem}
-              expandedDetails={expandedDetails[activePage]}
-              loadDetails={loadDetails}
-              closeDetails={closeDetails}
-              openRelatedDetails={openRelatedDetails}
-              openEditModal={openEditModal}
-              resourceKey={activePage}
-              rows={filteredRows}
-              selected={selected[activePage]}
-              setPrimaryContact={setPrimaryContact}
-              terminateContract={terminateContract}
-            />
           </section>
         )}
 
@@ -433,6 +565,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
             item={selected[formModal.resourceKey]}
             mode={formModal.mode}
             resources={resources}
+            defaultValues={formModal.defaultValues}
             onClose={closeFormModal}
             onSubmit={(e) =>
               formModal.mode === 'edit' ? updateItem(formModal.resourceKey, e) : createItem(formModal.resourceKey, e)

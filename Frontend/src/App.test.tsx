@@ -55,7 +55,8 @@ describe('App', () => {
 
     expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
     expect(await screen.findByText('Acme')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Suppliers 1/ })).toBeInTheDocument()
+    expect(screen.getByText('Suppliers · 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create supplier' })).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem('psk-session') ?? 'null')).toEqual(session)
     expect(api.login).toHaveBeenCalledWith({ username: 'ada', password: 'secret' })
     expect(api.getSuppliers).toHaveBeenCalledWith(session)

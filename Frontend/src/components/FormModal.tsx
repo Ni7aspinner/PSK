@@ -1,13 +1,13 @@
 import type { FormEvent } from 'react'
 import {
-  resourceConfig,
   type FieldConfig,
   type ResourceConfig,
+  type ResourceCreateDefaults,
   type ResourceItem,
   type ResourceMode,
   type Resources,
 } from '../models/resourceConfig'
-import { resourceValue } from '../utils/dashboardUtils'
+import { resourceValue, resourceLabel } from '../utils/dashboardUtils'
 
 type FormModalProps = Readonly<{
   busy: boolean
@@ -15,14 +15,25 @@ type FormModalProps = Readonly<{
   item?: ResourceItem | null
   mode: ResourceMode
   resources?: Partial<Resources>
+  defaultValues?: ResourceCreateDefaults
   onClose: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }>
+
+function formControlValue(value: unknown) {
+  return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''
+}
+
+function defaultFieldValue(defaultValues: ResourceCreateDefaults | undefined, fieldName: FieldConfig['name']) {
+  if (fieldName === 'supplierId' || fieldName === 'contractId') return defaultValues?.[fieldName]
+  return undefined
+}
 
 function renderFieldControl(
   field: FieldConfig,
   item: ResourceItem | null | undefined,
   resources: Partial<Resources> = {},
+  defaultValues?: ResourceCreateDefaults,
 ) {
   if (field.type === 'select') {
     const options = field.options ?? []
@@ -41,23 +52,31 @@ function renderFieldControl(
 
   if (field.type === 'resourceSelect' && field.resourceTarget) {
     const resourceTarget = field.resourceTarget
-    const itemValue = item ? resourceValue(item, field.name) : undefined
+    const defaultValue = formControlValue(defaultFieldValue(defaultValues, field.name) ?? (item ? resourceValue(item, field.name) : undefined))
+    const isLocked = !item && defaultValues && field.name in defaultValues && defaultValue !== ''
+
+    if (isLocked) {
+      const resItem = resources[resourceTarget]?.find((res) => res.id === Number(defaultValue))
+      return (
+        <>
+          <select disabled defaultValue={defaultValue}>
+            <option value={defaultValue}>{resourceLabel(resourceTarget, resItem)}</option>
+          </select>
+          <input type="hidden" name={field.name} value={defaultValue} />
+        </>
+      )
+    }
+
     return (
-      <select name={field.name} required={field.required} defaultValue={String(itemValue ?? '')}>
+      <select name={field.name} required={field.required} defaultValue={defaultValue}>
         <option value="" disabled={field.required}>
           {field.required ? `Select ${(field.label ?? field.name).toLowerCase()}` : 'Unassigned'}
         </option>
-        {resources[resourceTarget]?.map((resItem) => {
-          const targetConfig = resourceConfig[resourceTarget]
-          const label = String(
-            resourceValue(resItem, 'title') ?? resourceValue(resItem, targetConfig.primaryField) ?? `#${resItem.id}`,
-          )
-          return (
-            <option value={resItem.id} key={resItem.id}>
-              {label}
-            </option>
-          )
-        })}
+        {resources[resourceTarget]?.map((resItem) => (
+          <option value={resItem.id} key={resItem.id}>
+            {resourceLabel(resourceTarget, resItem)}
+          </option>
+        ))}
       </select>
     )
   }
@@ -67,12 +86,12 @@ function renderFieldControl(
       name={field.name}
       type={field.type ?? 'text'}
       required={field.required}
-      defaultValue={String(item ? (resourceValue(item, field.name) ?? '') : '')}
+      defaultValue={formControlValue(item ? resourceValue(item, field.name) : '')}
     />
   )
 }
 
-export function FormModal({ busy, config, item, mode, resources, onClose, onSubmit }: Readonly<FormModalProps>) {
+export function FormModal({ busy, config, item, mode, resources, defaultValues, onClose, onSubmit }: Readonly<FormModalProps>) {
   const title = mode === 'create' ? `Create ${config.singular}` : `Update ${config.singular}`
 
   return (
@@ -93,7 +112,7 @@ export function FormModal({ busy, config, item, mode, resources, onClose, onSubm
             .map((field) => (
               <label key={field.name}>
                 <span>{field.label ?? field.name}</span>
-                {renderFieldControl(field, item, resources)}
+                {renderFieldControl(field, item, resources, defaultValues)}
               </label>
             ))}
           <div className="form-actions">
