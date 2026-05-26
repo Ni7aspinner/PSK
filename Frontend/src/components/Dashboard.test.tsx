@@ -167,14 +167,12 @@ describe('Dashboard', () => {
 
   it('shows the active suppliers PDF action for admins and opens the report', async () => {
     const pdfBlob = new Blob(['%PDF-1.4\npdf-bytes'], { type: 'application/pdf' })
-    pdfBlob.slice = () => ({ arrayBuffer: () => Promise.resolve(new TextEncoder().encode('%PDF').buffer) } as any)
+    pdfBlob.slice = () => ({ arrayBuffer: () => Promise.resolve(new TextEncoder().encode('%PDF').buffer) } as unknown as Blob)
     const openMock = vi.spyOn(window, 'open').mockImplementation(() => null)
     window.URL.createObjectURL = vi.fn(() => 'blob:http://localhost/mock-url')
     window.URL.revokeObjectURL = vi.fn()
 
     api.getActiveSuppliersPdf.mockResolvedValue(pdfBlob)
-
-    const user = userEvent.setup()
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
@@ -196,7 +194,7 @@ describe('Dashboard', () => {
 
   it('shows an error when the active suppliers report is not a pdf', async () => {
     const notPdfBlob = new Blob(['plain text'], { type: 'text/plain' })
-    notPdfBlob.slice = () => ({ arrayBuffer: () => Promise.resolve(new TextEncoder().encode('plai').buffer) } as any)
+    notPdfBlob.slice = () => ({ arrayBuffer: () => Promise.resolve(new TextEncoder().encode('plai').buffer) } as unknown as Blob)
     const openMock = vi.spyOn(window, 'open').mockImplementation(() => null)
 
     api.getActiveSuppliersPdf.mockResolvedValue(notPdfBlob)
