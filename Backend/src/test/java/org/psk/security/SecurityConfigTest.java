@@ -21,7 +21,7 @@ class SecurityConfigTest {
 
   @Test
   void getSuppliers_withoutToken_returns401() throws Exception {
-    mockMvc.perform(get("/api/suppliers")).andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/suppliers")).andExpect(status().isUnauthorized());
   }
 
   @Test
@@ -29,7 +29,7 @@ class SecurityConfigTest {
     String token = jwtService.generateToken("user", "USER");
 
     mockMvc
-        .perform(get("/api/suppliers").header("Authorization", "Bearer " + token))
+        .perform(get("/suppliers").header("Authorization", "Bearer " + token))
         .andExpect(status().isOk());
   }
 
@@ -50,7 +50,7 @@ class SecurityConfigTest {
     String token = jwtService.generateToken("user", "USER");
 
     mockMvc
-        .perform(get("/api/admin/anything").header("Authorization", "Bearer " + token))
+        .perform(get("/admin/anything").header("Authorization", "Bearer " + token))
         .andExpect(status().isForbidden());
   }
 }

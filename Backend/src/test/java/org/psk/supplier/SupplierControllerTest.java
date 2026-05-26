@@ -57,7 +57,7 @@ class SupplierControllerTest {
     when(supplierService.findAll()).thenReturn(List.of());
 
     mockMvc
-        .perform(get("/api/suppliers"))
+        .perform(get("/suppliers"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$").isArray())
         .andExpect(jsonPath("$").isEmpty());
@@ -69,7 +69,7 @@ class SupplierControllerTest {
     when(supplierService.findAll()).thenReturn(List.of(dto));
 
     mockMvc
-        .perform(get("/api/suppliers"))
+        .perform(get("/suppliers"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].name").value("Alpha"));
   }
@@ -80,7 +80,7 @@ class SupplierControllerTest {
     when(supplierService.findById(1L)).thenReturn(dto);
 
     mockMvc
-        .perform(get("/api/suppliers/1"))
+        .perform(get("/suppliers/1"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(1))
         .andExpect(jsonPath("$.name").value("Beta"));
@@ -90,7 +90,7 @@ class SupplierControllerTest {
   void getById_notFound_returns404() throws Exception {
     when(supplierService.findById(99L)).thenThrow(new SupplierNotFoundException("Not found"));
 
-    mockMvc.perform(get("/api/suppliers/99")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/suppliers/99")).andExpect(status().isNotFound());
   }
 
   @Test
@@ -101,7 +101,7 @@ class SupplierControllerTest {
 
     mockMvc
         .perform(
-            post("/api/suppliers")
+            post("/suppliers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
         .andExpect(status().isBadRequest())
@@ -120,7 +120,7 @@ class SupplierControllerTest {
 
     mockMvc
         .perform(
-            post("/api/suppliers")
+            post("/suppliers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
         .andExpect(status().isCreated())
@@ -145,7 +145,7 @@ class SupplierControllerTest {
 
     mockMvc
         .perform(
-            put("/api/suppliers/2")
+            put("/suppliers/2")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
         .andExpect(status().isOk())
@@ -169,7 +169,7 @@ class SupplierControllerTest {
 
     mockMvc
         .perform(
-            put("/api/suppliers/2")
+            put("/suppliers/2")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
         .andExpect(status().isConflict())
@@ -195,7 +195,7 @@ class SupplierControllerTest {
 
     mockMvc
         .perform(
-            put("/api/suppliers/2/force")
+            put("/suppliers/2/force")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
         .andExpect(status().isOk())
@@ -207,13 +207,13 @@ class SupplierControllerTest {
   void delete_existing_returns204() throws Exception {
     doNothing().when(supplierService).delete(1L);
 
-    mockMvc.perform(delete("/api/suppliers/1")).andExpect(status().isNoContent());
+    mockMvc.perform(delete("/suppliers/1")).andExpect(status().isNoContent());
   }
 
   @Test
   void delete_notFound_returns404() throws Exception {
     doThrow(new SupplierNotFoundException("Not found")).when(supplierService).delete(99L);
 
-    mockMvc.perform(delete("/api/suppliers/99")).andExpect(status().isNotFound());
+    mockMvc.perform(delete("/suppliers/99")).andExpect(status().isNotFound());
   }
 }

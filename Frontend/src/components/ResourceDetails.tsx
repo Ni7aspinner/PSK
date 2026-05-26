@@ -3,7 +3,10 @@ import { type ResourceDetail, type ResourceItem, type ResourceKey } from '../mod
 import { resourceLabel } from '../utils/dashboardUtils'
 
 type RelatedSelect = (resourceKey: ResourceKey, item: ResourceItem) => void
-type DetailProps = Readonly<{ detail: ResourceDetail; onRelatedSelect: RelatedSelect }>
+type DetailProps = Readonly<{
+  detail: ResourceDetail
+  onRelatedSelect: RelatedSelect
+}>
 type ResourceDetailsProps = Readonly<
   DetailProps & {
     resourceKey: ResourceKey

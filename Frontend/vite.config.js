@@ -37,9 +37,15 @@ export default defineConfig({
   plugins: [react()],
   define: {
     'import.meta.env.VITE_BACKEND_URL': JSON.stringify(backendUrl),
+    'import.meta.env.VITE_API_BASE': JSON.stringify('/api'),
   },
   test: {
     environment: 'jsdom',
+    environmentOptions: {
+      jsdom: {
+        url: 'http://localhost:4000/',
+      },
+    },
     globals: true,
     setupFiles: ['./src/setupTests.ts'],
     coverage: {
@@ -55,11 +61,12 @@ export default defineConfig({
     },
   },
   server: {
+    port: 4000,
+    strictPort: true,
     proxy: {
       '/api': {
         target: backendUrl,
         changeOrigin: true,
-        rewrite: (requestPath) => requestPath.replace(new RegExp(`^/api`), ''),
       },
     },
   },

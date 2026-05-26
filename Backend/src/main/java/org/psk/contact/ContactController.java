@@ -14,11 +14,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
 @RequiredArgsConstructor
 public class ContactController {
 
@@ -42,7 +40,7 @@ public class ContactController {
   @PostMapping("/contacts")
   public ResponseEntity<ContactDto> create(@Valid @RequestBody CreateContactRequest request) {
     ContactDto created = contactService.create(request);
-    return ResponseEntity.created(URI.create("/api/contacts/" + created.getId())).body(created);
+    return ResponseEntity.created(URI.create("/contacts/" + created.getId())).body(created);
   }
 
   @PutMapping("/contacts/{id}")

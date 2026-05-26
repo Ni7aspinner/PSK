@@ -33,6 +33,19 @@ describe('ResourceDetails', () => {
     expect(onRelatedSelect).toHaveBeenNthCalledWith(2, 'services', service)
   })
 
+  it('renders empty supplier relationship sections', () => {
+    render(
+      <ResourceDetails
+        detail={{}}
+        onRelatedSelect={vi.fn()}
+        resourceKey="suppliers"
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Related contracts' })).toBeInTheDocument()
+    expect(screen.getByText('No related contracts.')).toBeInTheDocument()
+  })
+
   it('renders contract supplier and linked services', () => {
     const onRelatedSelect = vi.fn()
     const contract = {

@@ -80,6 +80,16 @@ function isSupplier(item: ResourceItem | null | undefined): item is Supplier {
   return Boolean(item && 'registrationCode' in item)
 }
 
+async function ensurePdfBlob(blob: Blob) {
+  const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer())
+  const isPdfHeader =
+    header.length === 4 && header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46
+
+  if (!isPdfHeader) {
+    throw new Error('The active suppliers report did not return a valid PDF.')
+  }
+}
+
 function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
   return contacts.map((row) =>
     row.supplierId === primaryContact.supplierId ? { ...row, primary: row.id === primaryContact.id } : row,
@@ -331,6 +341,16 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     setWorkspaceSearchQuery(query)
   }
 
+  const openActiveSuppliersPdf = () => {
+    runAction('active-suppliers-pdf', async () => {
+      const pdfBlob = await backendApi.getActiveSuppliersPdf(session)
+      await ensurePdfBlob(pdfBlob)
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      globalThis.open(pdfUrl, '_blank', 'noopener,noreferrer')
+      globalThis.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000)
+    })
+  }
+
   const openRelatedDetails = (resourceKey: ResourceKey, item: ResourceItem) => {
     if (resourceKey === 'suppliers') {
       if (selected.suppliers?.id === item.id) {
@@ -377,6 +397,8 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
         ['Phone', selectedSupplier.phone || '-'],
       ]
     : []
+  const canOpenActiveSuppliersPdf = session.role?.toUpperCase() === 'ADMIN'
+
   return (
     <main className="dashboard-screen">
       <div className="dashboard-shell">
@@ -467,6 +489,14 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                           onClick={() => openEditModal('suppliers', selectedSupplier)}>
                           Edit supplier
                         </button>
+                        {canOpenActiveSuppliersPdf && (
+                          <button
+                            type="button"
+                            className="link-action workspace-link-action"
+                            onClick={openActiveSuppliersPdf}>
+                            Open active suppliers PDF
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="link-action workspace-link-action close-supplier-action"
