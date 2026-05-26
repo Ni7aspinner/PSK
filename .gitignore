@@ -6,6 +6,9 @@ Frontend/coverage/
 Frontend/dist/
 Frontend/node_modules/
 
+# Environment variables
+.env
+
 # Local IDE settings
 .vscode/
 .idea/
