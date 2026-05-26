@@ -57,6 +57,16 @@ function searchableValue(value: unknown) {
   return ''
 }
 
+async function ensurePdfBlob(blob: Blob) {
+  const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer())
+  const isPdfHeader =
+    header.length === 4 && header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46
+
+  if (!isPdfHeader) {
+    throw new Error('The active suppliers report did not return a valid PDF.')
+  }
+}
+
 function updatePrimaryContacts(contacts: Contact[], primaryContact: Contact) {
   return contacts.map((row) =>
     row.supplierId === primaryContact.supplierId ? { ...row, primary: row.id === primaryContact.id } : row,
@@ -295,6 +305,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const openActiveSuppliersPdf = () => {
     runAction('active-suppliers-pdf', async () => {
       const pdfBlob = await backendApi.getActiveSuppliersPdf(session)
+      await ensurePdfBlob(pdfBlob)
       const pdfUrl = URL.createObjectURL(pdfBlob)
       window.open(pdfUrl, '_blank', 'noopener,noreferrer')
       window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000)
@@ -307,6 +318,9 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   }
 
   const config = resourceConfig[activePage]
+
+
+  const canOpenActiveSuppliersPdf = session.role?.toUpperCase() === 'ADMIN' && activePage === 'suppliers';
 
   return (
     <main className="dashboard-screen">
@@ -373,6 +387,16 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
                   onClick={() => openCreateModal(activePage)}>
                   Create {config.singular}
                 </button>
+                {canOpenActiveSuppliersPdf && (
+                  <button
+                    type="button"
+                    className="primary-action"
+                    style={{ marginLeft: 8 }}
+                    onClick={openActiveSuppliersPdf}
+                  >
+                    Open active suppliers PDF
+                  </button>
+                )}
               </div>
             </div>
             <ResourceTable

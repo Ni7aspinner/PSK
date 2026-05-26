@@ -38,21 +38,14 @@ export function ResourceDetails({
   session,
 }: Readonly<ResourceDetailsProps>) {
   const config = resourceConfig[resourceKey]
-  const canOpenActiveSuppliersPdf = session.role?.toUpperCase() === 'ADMIN'
 
   return (
     <section className="details-panel">
-      {resourceKey === 'suppliers' && (
-          <button type="button" className="primary-action" onClick={onOpenActiveSuppliersPdf}>
-            Open active suppliers PDF
-          </button>
-        )}
       <div className="details-heading">
         <div>
           <p className="kicker">{config.singular} details</p>
           <h3>{primary}</h3>
         </div>
-        
       </div>
       {resourceKey === 'suppliers' && <SupplierDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
       {resourceKey === 'contacts' && <ContactDetails detail={detail} onRelatedSelect={onRelatedSelect} />}

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Dashboard } from './Dashboard'
 import { backendApi } from '../api/backendApi'
 
@@ -165,22 +166,53 @@ describe('Dashboard', () => {
   })
 
   it('shows the active suppliers PDF action for admins and opens the report', async () => {
-    const pdfBlob = new Blob(['pdf-bytes'], { type: 'application/pdf' })
-    const openMock = vi.spyOn(window, 'open').mockReturnValue(null)
+    const pdfBlob = new Blob(['%PDF-1.4\npdf-bytes'], { type: 'application/pdf' })
+    const openMock = vi.spyOn(window, 'open').mockImplementation(() => null)
+
     api.getActiveSuppliersPdf.mockResolvedValue(pdfBlob)
+
+    const user = userEvent.setup()
 
     render(<Dashboard session={session} onSignOut={vi.fn()} />)
 
     await screen.findByText('Acme')
-    fireEvent.click(screen.getAllByTitle('Expand details')[0])
 
-    const action = await screen.findByRole('button', { name: 'Open active suppliers PDF' })
-    fireEvent.click(action)
+    await user.click(screen.getAllByTitle('Expand details')[0])
+
+    const action = await screen.findByRole('button', {
+      name: 'Open active suppliers PDF',
+    })
+
+    await user.click(action)
 
     await waitFor(() => {
       expect(api.getActiveSuppliersPdf).toHaveBeenCalledWith(session)
+      expect(openMock).toHaveBeenCalledTimes(1)
     })
-    expect(openMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows an error when the active suppliers report is not a pdf', async () => {
+    const notPdfBlob = new Blob(['plain text'], { type: 'text/plain' })
+    const openMock = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    api.getActiveSuppliersPdf.mockResolvedValue(notPdfBlob)
+
+    const user = userEvent.setup()
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    await screen.findByText('Acme')
+    await user.click(screen.getAllByTitle('Expand details')[0])
+
+    const action = await screen.findByRole('button', {
+      name: 'Open active suppliers PDF',
+    })
+
+    await user.click(action)
+
+    expect(await screen.findByText('The active suppliers report did not return a valid PDF.')).toBeInTheDocument()
+    expect(api.getActiveSuppliersPdf).toHaveBeenCalledWith(session)
+    expect(openMock).not.toHaveBeenCalled()
   })
 
   it('terminates active contracts from the contracts table', async () => {
