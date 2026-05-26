@@ -54,7 +54,7 @@ class ReportControllerTest {
 
     MvcResult result =
         mockMvc
-            .perform(get("/api/reports/active-suppliers").with(user("report-user").roles("USER")))
+            .perform(get("/reports/active-suppliers").with(user("report-user").roles("USER")))
             .andExpect(request().asyncStarted())
             .andReturn();
 
@@ -73,6 +73,6 @@ class ReportControllerTest {
   @Test
   @WithAnonymousUser
   void activeSuppliers_unauthenticated_returns401() throws Exception {
-    mockMvc.perform(get("/api/reports/active-suppliers")).andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/reports/active-suppliers")).andExpect(status().isUnauthorized());
   }
 }

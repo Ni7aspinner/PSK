@@ -43,7 +43,7 @@ class SupplierContractServiceIntegrationTest {
 
     mockMvc
         .perform(
-            get("/api/suppliers/{id}/services", supplier.getId())
+            get("/suppliers/{id}/services", supplier.getId())
                 .header("Authorization", "Bearer " + token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(service.getId()))

@@ -3,7 +3,10 @@ import { resourceConfig, type ResourceDetail, type ResourceItem, type ResourceKe
 import { resourceLabel } from '../utils/dashboardUtils'
 
 type RelatedSelect = (resourceKey: ResourceKey, item: ResourceItem) => void
-type DetailProps = Readonly<{ detail: ResourceDetail; onRelatedSelect: RelatedSelect }>
+type DetailProps = Readonly<{
+  detail: ResourceDetail
+  onRelatedSelect: RelatedSelect
+}>
 type ResourceDetailsProps = Readonly<
   DetailProps & {
     primary: ReactNode
@@ -23,7 +26,12 @@ type RelatedRecordButtonProps = Readonly<{
   resourceKey: ResourceKey
 }>
 
-export function ResourceDetails({ detail, onRelatedSelect, primary, resourceKey }: Readonly<ResourceDetailsProps>) {
+export function ResourceDetails({
+  detail,
+  onRelatedSelect,
+  primary,
+  resourceKey,
+}: Readonly<ResourceDetailsProps>) {
   const config = resourceConfig[resourceKey]
 
   return (
