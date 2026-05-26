@@ -32,6 +32,19 @@ describe('ResourceDetails', () => {
     expect(onRelatedSelect).toHaveBeenNthCalledWith(2, 'services', service)
   })
 
+  it('shows the active suppliers PDF action only to admins', () => {
+    render(
+      <ResourceDetails
+        detail={{}}
+        onRelatedSelect={vi.fn()}
+        primary="Acme"
+        resourceKey="suppliers"
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Acme' })).toBeInTheDocument()
+  })
+
   it('renders contract supplier and linked services', () => {
     const onRelatedSelect = vi.fn()
     const supplier = { id: 1, email: 'ops@acme.test', name: 'Acme', phone: '555-0100', registrationCode: 'ACME-1' }

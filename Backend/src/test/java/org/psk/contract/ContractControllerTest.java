@@ -55,7 +55,7 @@ class ContractControllerTest {
     when(contractService.findAll()).thenReturn(List.of(dto));
 
     mockMvc
-        .perform(get("/api/contracts"))
+        .perform(get("/contracts"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].contractNumber").value("C-001"))
         .andExpect(jsonPath("$[0].serviceIds[0]").value(5));
@@ -65,7 +65,7 @@ class ContractControllerTest {
   void getById_notFound_returns404() throws Exception {
     when(contractService.findById(99L)).thenThrow(new ContractNotFoundException("Not found"));
 
-    mockMvc.perform(get("/api/contracts/99")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/contracts/99")).andExpect(status().isNotFound());
   }
 
   @Test
@@ -88,7 +88,7 @@ class ContractControllerTest {
     when(contractService.create(any(CreateContractRequest.class))).thenReturn(created);
 
     mockMvc
-        .perform(post("/api/contracts").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(post("/contracts").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(5))
         .andExpect(header().exists("Location"));
@@ -104,7 +104,7 @@ class ContractControllerTest {
         .thenThrow(new ContractNumberDuplicateException("Duplicate"));
 
     mockMvc
-        .perform(post("/api/contracts").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(post("/contracts").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isConflict());
   }
 
@@ -117,7 +117,7 @@ class ContractControllerTest {
         .thenThrow(new InvalidContractDateRangeException("Invalid"));
 
     mockMvc
-        .perform(put("/api/contracts/5").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(put("/contracts/5").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest());
   }
 
@@ -139,8 +139,7 @@ class ContractControllerTest {
         .thenReturn(updated);
 
     mockMvc
-        .perform(
-            put("/api/contracts/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(put("/contracts/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.title").value("Forced"))
         .andExpect(jsonPath("$.version").value(3));
@@ -160,7 +159,7 @@ class ContractControllerTest {
     when(contractService.terminate(5L)).thenReturn(terminated);
 
     mockMvc
-        .perform(post("/api/contracts/5/terminate"))
+        .perform(post("/contracts/5/terminate"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("TERMINATED"));
   }
@@ -169,6 +168,6 @@ class ContractControllerTest {
   void delete_notFound_returns404() throws Exception {
     doThrow(new ContractNotFoundException("Not found")).when(contractService).delete(99L);
 
-    mockMvc.perform(delete("/api/contracts/99")).andExpect(status().isNotFound());
+    mockMvc.perform(delete("/contracts/99")).andExpect(status().isNotFound());
   }
 }

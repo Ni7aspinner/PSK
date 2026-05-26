@@ -8,6 +8,7 @@ vi.mock('../api/backendApi', () => ({
     createSupplier: vi.fn(),
     deleteContact: vi.fn(),
     deleteSupplier: vi.fn(),
+    getActiveSuppliersPdf: vi.fn(),
     getContact: vi.fn(),
     getContacts: vi.fn(),
     getContract: vi.fn(),
@@ -163,6 +164,56 @@ describe('Dashboard', () => {
     expect(api.deleteSupplier).toHaveBeenCalledWith(session, 1)
   })
 
+  it('shows the active suppliers PDF action for admins and opens the report', async () => {
+    const pdfBlob = new Blob(['%PDF-1.4\npdf-bytes'], { type: 'application/pdf' })
+    pdfBlob.slice = () => ({ arrayBuffer: () => Promise.resolve(new TextEncoder().encode('%PDF').buffer) } as unknown as Blob)
+    const openMock = vi.spyOn(window, 'open').mockImplementation(() => null)
+    window.URL.createObjectURL = vi.fn(() => 'blob:http://localhost/mock-url')
+    window.URL.revokeObjectURL = vi.fn()
+
+    api.getActiveSuppliersPdf.mockResolvedValue(pdfBlob)
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    await screen.findByText('Acme')
+
+    fireEvent.click(screen.getAllByTitle('Expand details')[0])
+
+    const action = await screen.findByRole('button', {
+      name: 'Open active suppliers PDF',
+    })
+
+    fireEvent.click(action)
+
+    await waitFor(() => {
+      expect(api.getActiveSuppliersPdf).toHaveBeenCalledWith(session)
+      expect(openMock).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('shows an error when the active suppliers report is not a pdf', async () => {
+    const notPdfBlob = new Blob(['plain text'], { type: 'text/plain' })
+    notPdfBlob.slice = () => ({ arrayBuffer: () => Promise.resolve(new TextEncoder().encode('plai').buffer) } as unknown as Blob)
+    const openMock = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    api.getActiveSuppliersPdf.mockResolvedValue(notPdfBlob)
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    await screen.findByText('Acme')
+    fireEvent.click(screen.getAllByTitle('Expand details')[0])
+
+    const action = await screen.findByRole('button', {
+      name: 'Open active suppliers PDF',
+    })
+
+    fireEvent.click(action)
+
+    expect(await screen.findByText('The active suppliers report did not return a valid PDF.')).toBeInTheDocument()
+    expect(api.getActiveSuppliersPdf).toHaveBeenCalledWith(session)
+    expect(openMock).not.toHaveBeenCalled()
+  })
+
   it('terminates active contracts from the contracts table', async () => {
     api.terminateContract.mockResolvedValue({ ...contract, status: 'TERMINATED' })
 
@@ -249,5 +300,46 @@ describe('Dashboard', () => {
 
     expect(await screen.findByText('Unable to reach API.')).toBeInTheDocument()
     expect(screen.getByText('No suppliers found.')).toBeInTheDocument()
+  })
+
+  it('filters resources by search query', async () => {
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument()
+
+    const searchInput = screen.getByPlaceholderText('Search suppliers...')
+    fireEvent.change(searchInput, { target: { value: 'NonExistentData' } })
+
+    expect(screen.queryByText('Acme')).not.toBeInTheDocument()
+
+    fireEvent.change(searchInput, { target: { value: 'ACME' } })
+
+    expect(screen.getByText('Acme')).toBeInTheDocument()
+  })
+
+  it('signs out when the sign out button is clicked', async () => {
+    const handleSignOut = vi.fn()
+    render(<Dashboard session={session} onSignOut={handleSignOut} />)
+    
+    expect(await screen.findByText('Acme')).toBeInTheDocument()
+    
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(handleSignOut).toHaveBeenCalledTimes(1)
+  })
+
+  it('collapses details', async () => {
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument()
+    
+    const expandBtn = screen.getAllByTitle('Expand details')[0]
+    fireEvent.click(expandBtn)
+    
+    expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument()
+    
+    const collapseBtn = screen.getAllByTitle('Collapse details')[0]
+    fireEvent.click(collapseBtn)
+    
+    expect(screen.queryByRole('heading', { name: 'Acme' })).not.toBeInTheDocument()
   })
 })
