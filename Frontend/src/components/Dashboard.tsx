@@ -307,8 +307,8 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       const pdfBlob = await backendApi.getActiveSuppliersPdf(session)
       await ensurePdfBlob(pdfBlob)
       const pdfUrl = URL.createObjectURL(pdfBlob)
-      window.open(pdfUrl, '_blank', 'noopener,noreferrer')
-      window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000)
+      globalThis.open(pdfUrl, '_blank', 'noopener,noreferrer')
+      globalThis.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000)
     })
   }
 

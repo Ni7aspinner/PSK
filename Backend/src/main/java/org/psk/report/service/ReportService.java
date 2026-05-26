@@ -1,17 +1,20 @@
 package org.psk.report.service;
 
 import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
 import com.lowagie.text.Element;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.psk.report.dto.ActiveSupplierRow;
 import org.psk.report.dto.ActiveSuppliersReportDto;
+import org.psk.report.exception.ReportGenerationException;
 import org.psk.report.mapper.ActiveSuppliersMapper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -73,8 +76,8 @@ public class ReportService {
       document.close();
 
       return baos.toByteArray();
-    } catch (Exception e) {
-      throw new RuntimeException("Error generating PDF", e);
+    } catch (DocumentException | IOException e) {
+      throw new ReportGenerationException("Error generating PDF", e);
     }
   }
 }
