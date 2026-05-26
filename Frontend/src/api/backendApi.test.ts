@@ -154,7 +154,7 @@ describe('backendApi', () => {
 
     await expect(backendApi.getActiveSuppliersPdf({ token: 'jwt-token' })).resolves.toBe(blob)
 
-    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}reports/active-suppliers/pdf`, {
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/reports/active-suppliers/pdf`, {
       headers: {
         Authorization: 'Bearer jwt-token',
       },

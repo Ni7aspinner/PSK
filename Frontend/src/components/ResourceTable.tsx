@@ -1,6 +1,5 @@
 import { Fragment } from 'react'
 import type { Contact, Contract, ResourceConfig, ResourceDetail, ResourceItem, ResourceKey } from '../models/resourceConfig'
-import type { Session } from '../models/resourceConfig'
 import { isContactLike, isContractLike, resourceValue } from '../utils/dashboardUtils'
 import { formatCellValue } from '../utils/modelUtils'
 import { IconEdit, IconChevronDown, IconChevronUp, IconTrash, IconTerminate } from './Icons'
@@ -15,8 +14,6 @@ type ResourceTableProps = Readonly<{
   closeDetails: (resourceKey: ResourceKey) => void
   openRelatedDetails: (resourceKey: ResourceKey, item: ResourceItem) => void
   openEditModal: (resourceKey: ResourceKey, item: ResourceItem) => void
-  onOpenActiveSuppliersPdf: () => void
-  session: Session
   resourceKey: ResourceKey
   rows: ResourceItem[]
   selected?: ResourceItem | null
@@ -33,8 +30,6 @@ export function ResourceTable({
   closeDetails,
   openRelatedDetails,
   openEditModal,
-  onOpenActiveSuppliersPdf,
-  session,
   resourceKey,
   rows,
   selected,
@@ -120,10 +115,8 @@ export function ResourceTable({
                     <td colSpan={config.columns.length + 1}>
                       <ResourceDetails
                         detail={expandedDetails}
-                        onOpenActiveSuppliersPdf={onOpenActiveSuppliersPdf}
                         onRelatedSelect={openRelatedDetails}
                         primary={primary}
-                        session={session}
                         resourceKey={resourceKey}
                       />
                     </td>
