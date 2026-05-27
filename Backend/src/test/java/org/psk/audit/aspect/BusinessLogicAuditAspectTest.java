@@ -10,6 +10,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.psk.audit.domain.AuditLog;
 import org.psk.audit.repository.AuditLogRepository;
+import org.psk.contact.ContactRepository;
+import org.psk.contract.ContractRepository;
+import org.psk.service.ServiceRepository;
 import org.psk.supplier.SupplierRepository;
 import org.psk.supplier.SupplierService;
 import org.psk.supplier.dto.CreateSupplierRequest;
@@ -27,12 +30,18 @@ class BusinessLogicAuditAspectTest {
 
   @Autowired private SupplierService supplierService;
   @Autowired private SupplierRepository supplierRepository;
+  @Autowired private ContractRepository contractRepository;
+  @Autowired private ServiceRepository serviceRepository;
+  @Autowired private ContactRepository contactRepository;
   @Autowired private AuditLogRepository auditLogRepository;
 
   @BeforeEach
   void setUp() {
     SecurityContextHolder.clearContext();
     auditLogRepository.deleteAll();
+    serviceRepository.deleteAll();
+    contactRepository.deleteAll();
+    contractRepository.deleteAll();
     supplierRepository.deleteAll();
   }
 
@@ -47,7 +56,7 @@ class BusinessLogicAuditAspectTest {
 
     supplierService.create(supplierRequest("Audited Supplier", "AUD-001"));
 
-    AuditLog auditLog = awaitSingleAuditLog();
+    AuditLog auditLog = awaitAuditLog("create", "SUCCESS");
     assertThat(auditLog.getClassName()).isEqualTo("org.psk.supplier.SupplierService");
     assertThat(auditLog.getMethodName()).isEqualTo("create");
     assertThat(auditLog.getUsername()).isEqualTo("audit-user");
@@ -65,7 +74,7 @@ class BusinessLogicAuditAspectTest {
     assertThatThrownBy(() -> supplierService.findById(9999L))
         .isInstanceOf(SupplierNotFoundException.class);
 
-    AuditLog auditLog = awaitSingleAuditLog();
+    AuditLog auditLog = awaitAuditLog("findById", "FAILURE");
     assertThat(auditLog.getClassName()).isEqualTo("org.psk.supplier.SupplierService");
     assertThat(auditLog.getMethodName()).isEqualTo("findById");
     assertThat(auditLog.getUsername()).isEqualTo("audit-user");
@@ -88,14 +97,23 @@ class BusinessLogicAuditAspectTest {
     return request;
   }
 
-  private AuditLog awaitSingleAuditLog() throws Exception {
+  private AuditLog awaitAuditLog(String methodName, String outcome) throws Exception {
     Instant deadline = Instant.now().plusSeconds(5);
     List<AuditLog> rows = auditLogRepository.findAll();
-    while (rows.size() != 1 && Instant.now().isBefore(deadline)) {
+    while (matchingLogs(rows, methodName, outcome).isEmpty() && Instant.now().isBefore(deadline)) {
       Thread.sleep(50);
       rows = auditLogRepository.findAll();
     }
-    assertThat(rows).hasSize(1);
-    return rows.get(0);
+    List<AuditLog> matchingRows = matchingLogs(rows, methodName, outcome);
+    assertThat(matchingRows).hasSize(1);
+    return matchingRows.get(0);
+  }
+
+  private List<AuditLog> matchingLogs(List<AuditLog> rows, String methodName, String outcome) {
+    return rows.stream()
+        .filter(auditLog -> "org.psk.supplier.SupplierService".equals(auditLog.getClassName()))
+        .filter(auditLog -> methodName.equals(auditLog.getMethodName()))
+        .filter(auditLog -> outcome.equals(auditLog.getOutcome()))
+        .toList();
   }
 }

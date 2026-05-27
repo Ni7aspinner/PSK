@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import heroMark from '../assets/hero.png'
 import { backendApi } from '../api/backendApi'
 import {
+  type ActiveSuppliersReport,
   resourceConfig,
   type Contact,
   type ContactCreatePayload,
@@ -37,12 +38,15 @@ import {
 import { ResourceTable } from './ResourceTable'
 import { FormModal } from './FormModal'
 import { ThemeToggle } from './ThemeToggle'
+import { ActiveSuppliersReportPanel } from './ActiveSuppliersReportPanel'
 import { SupplierList } from './SupplierList'
 
 type DashboardProps = Readonly<{
   session: Session
   onSignOut: () => void
 }>
+
+type DashboardPage = 'suppliers' | 'reports'
 
 interface FormModalState {
   mode: ResourceMode
@@ -51,6 +55,10 @@ interface FormModalState {
 }
 
 const initialResources: Resources = { suppliers: [], contacts: [], contracts: [], services: [] }
+const dashboardTabs = [
+  { key: 'suppliers' as const, label: 'Suppliers' },
+  { key: 'reports' as const, label: 'Reports' },
+]
 const workspaceColumnKeys = {
   contacts: ['firstName', 'lastName', 'position', 'email', 'phone', 'primaryLabel'],
   contracts: ['contractNumber', 'title', 'startDate', 'endDate', 'status'],
@@ -106,20 +114,41 @@ function replaceExpandedDetailItem(
 }
 
 function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
+  const [activePage, setActivePage] = useState<DashboardPage>('suppliers')
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceResourceKey>('contacts')
   const [resources, setResources] = useState(initialResources)
   const [selected, setSelected] = useState<Partial<Record<ResourceKey, ResourceItem | null>>>({})
   const [expandedDetails, setExpandedDetails] = useState<Partial<Record<ResourceKey, ResourceDetail | null>>>({})
+  const [activeSuppliersReport, setActiveSuppliersReport] = useState<ActiveSuppliersReport | null>(null)
   const [loading, setLoading] = useState(true)
+  const [reportLoading, setReportLoading] = useState(false)
   const [busyAction, setBusyAction] = useState('')
   const [error, setError] = useState('')
+  const [reportError, setReportError] = useState('')
   const [formModal, setFormModal] = useState<FormModalState | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [reportSearchQuery, setReportSearchQuery] = useState('')
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('')
+  const reportRequestedRef = useRef(false)
+
+  const counts = useMemo(
+    () => ({
+      suppliers: resources.suppliers.length,
+      reports: activeSuppliersReport?.rows.length ?? 0,
+    }),
+    [activeSuppliersReport, resources],
+  )
 
   const config = resourceConfig.suppliers
   const enrichedRows = useMemo(() => getEnrichedRows('suppliers', resources), [resources])
   const filteredRows = useMemo(() => filterRows(enrichedRows, searchQuery), [enrichedRows, searchQuery])
+
+  const filteredReportRows = useMemo(() => {
+    const rows = activeSuppliersReport?.rows ?? []
+    if (!reportSearchQuery) return rows
+    const q = reportSearchQuery.toLowerCase()
+    return rows.filter((row) => Object.values(row).some((val) => searchableValue(val).includes(q)))
+  }, [activeSuppliersReport, reportSearchQuery])
 
   const loadSuppliers = useCallback(async () => {
     setLoading(true)
@@ -134,6 +163,19 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     }
   }, [session])
 
+  const loadActiveSuppliersReport = useCallback(async () => {
+    reportRequestedRef.current = true
+    setReportLoading(true)
+    setReportError('')
+    try {
+      setActiveSuppliersReport(await backendApi.getActiveSuppliersReport(session))
+    } catch (err) {
+      setReportError(err instanceof Error ? err.message : 'Unable to load active suppliers report.')
+    } finally {
+      setReportLoading(false)
+    }
+  }, [session])
+
   useEffect(() => {
     loadSuppliers()
   }, [loadSuppliers])
@@ -142,6 +184,12 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     globalThis.addEventListener('focus', loadSuppliers)
     return () => globalThis.removeEventListener('focus', loadSuppliers)
   }, [loadSuppliers])
+
+  useEffect(() => {
+    if (activePage === 'reports' && !reportRequestedRef.current) {
+      loadActiveSuppliersReport()
+    }
+  }, [activePage, loadActiveSuppliersReport])
 
   const runAction = async (label: string, action: () => Promise<void>) => {
     setBusyAction(label)
@@ -421,9 +469,35 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
           </div>
         </header>
 
-        {error && <p className="alert-text">{error}</p>}
+        <nav className="dashboard-nav" aria-label="Resource pages">
+          {dashboardTabs.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={activePage === item.key ? 'nav-tab nav-tab-active' : 'nav-tab'}
+              onClick={() => {
+                setActivePage(item.key)
+                setSearchQuery('')
+              }}>
+              {item.label}
+              <span>{counts[item.key]}</span>
+            </button>
+          ))}
+        </nav>
 
-        {loading ? (
+        {activePage === 'suppliers' && error && <p className="alert-text">{error}</p>}
+
+        {activePage === 'reports' ? (
+          <ActiveSuppliersReportPanel
+            error={reportError}
+            loading={reportLoading}
+            onRefresh={loadActiveSuppliersReport}
+            onSearchChange={setReportSearchQuery}
+            report={activeSuppliersReport}
+            rows={filteredReportRows}
+            searchQuery={reportSearchQuery}
+          />
+        ) : loading ? (
           <section className="dashboard-panel">
             <p className="empty-state">Loading resources...</p>
           </section>
