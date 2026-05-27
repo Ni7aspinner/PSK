@@ -27,3 +27,9 @@ Frontend/node_modules/
 AGENTS.md
 notify-codex-finished.ps1
 *.py
+
+# Local report/draft artifacts
+destytojo_zinute.txt
+destytotjo_zinute.txt
+PSK_technine_ataskaita.docx
+PSK_technine_ataskaita_pateikimui.docx

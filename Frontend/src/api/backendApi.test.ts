@@ -1,4 +1,4 @@
-import { API_BASE, backendApi } from './backendApi'
+import { API_BASE, BackendApiError, backendApi, isOptimisticLockConflictError } from './backendApi'
 
 describe('backendApi', () => {
   beforeEach(() => {
@@ -66,6 +66,36 @@ describe('backendApi', () => {
     } as Response)
 
     await expect(backendApi.login({ username: 'ada', password: 'wrong' })).rejects.toThrow('Invalid credentials.')
+  })
+
+  it('keeps optimistic locking conflict details on thrown API errors', async () => {
+    const conflictBody = {
+      currentState: { id: 7, name: 'Current', version: 2 },
+      currentVersion: 2,
+      message: 'Supplier was modified by another user',
+      submittedState: { name: 'Submitted', version: 1 },
+      submittedVersion: 1,
+    }
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => conflictBody,
+    } as Response)
+
+    await expect(backendApi.updateSupplier({ token: 'jwt-token' }, 7, { name: 'Submitted', version: 1 })).rejects.toThrow(
+      'Supplier was modified by another user',
+    )
+
+    try {
+      await backendApi.updateSupplier({ token: 'jwt-token' }, 7, { name: 'Submitted', version: 1 })
+    } catch (error) {
+      expect(error).toBeInstanceOf(BackendApiError)
+      expect(isOptimisticLockConflictError(error)).toBe(true)
+      if (isOptimisticLockConflictError(error)) {
+        expect(error.status).toBe(409)
+        expect(error.body.currentVersion).toBe(2)
+      }
+    }
   })
 
   it('calls relationship and contract action endpoints', async () => {
@@ -249,6 +279,46 @@ describe('backendApi', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(16, `${API_BASE}/services`, expect.objectContaining({ method: 'POST' }))
     expect(fetchMock).toHaveBeenNthCalledWith(17, `${API_BASE}/services/7`, expect.objectContaining({ method: 'PUT' }))
     expect(fetchMock).toHaveBeenNthCalledWith(18, `${API_BASE}/services/7`, expect.objectContaining({ method: 'DELETE' }))
+  })
+
+  it('sends force overwrite requests with the required flag', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 7, name: 'Forced' }),
+    } as Response)
+    const session = { token: 'jwt-token' }
+
+    await backendApi.forceOverwriteSupplier(session, 7, { name: 'Forced', version: 1 })
+    await backendApi.forceOverwriteContact(session, 8, {
+      firstName: 'Ada',
+      lastName: 'Byron',
+      primary: true,
+      supplierId: 2,
+      version: 1,
+    })
+    await backendApi.forceOverwriteContract(session, 9, {
+      endDate: '2026-12-31',
+      startDate: '2026-01-01',
+      status: 'ACTIVE',
+      title: 'Forced',
+      version: 1,
+    })
+    await backendApi.forceOverwriteService(session, 10, {
+      active: true,
+      name: 'Forced',
+      supplierId: 2,
+      version: 1,
+    })
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/suppliers/7/force`, {
+      body: JSON.stringify({ name: 'Forced', version: 1, forceOverwrite: true }),
+      headers: { Authorization: 'Bearer jwt-token', 'Content-Type': 'application/json' },
+      method: 'PUT',
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/contacts/8/force`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${API_BASE}/contracts/9/force`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${API_BASE}/services/10/force`, expect.objectContaining({ method: 'PUT' }))
   })
 
   it('uses backend message, backend error, and request fallback for failed responses', async () => {

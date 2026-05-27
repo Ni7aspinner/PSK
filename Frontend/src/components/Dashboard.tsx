@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import heroMark from '../assets/hero.png'
-import { backendApi } from '../api/backendApi'
+import { backendApi, isOptimisticLockConflictError, type OptimisticLockConflictBody } from '../api/backendApi'
 import {
   resourceConfig,
   type Contact,
@@ -50,6 +50,17 @@ interface FormModalState {
   defaultValues?: ResourceCreateDefaults
 }
 
+interface ConflictState {
+  currentState?: ResourceItem
+  currentVersion?: number
+  item: ResourceItem
+  message: string
+  payload: ResourcePayload
+  resourceKey: ResourceKey
+  submittedState: unknown
+  submittedVersion?: number
+}
+
 const initialResources: Resources = { suppliers: [], contacts: [], contracts: [], services: [] }
 const workspaceColumnKeys = {
   contacts: ['firstName', 'lastName', 'position', 'email', 'phone', 'primaryLabel'],
@@ -80,6 +91,15 @@ function isSupplier(item: ResourceItem | null | undefined): item is Supplier {
   return Boolean(item && 'registrationCode' in item)
 }
 
+function isResourceItem(value: unknown): value is ResourceItem {
+  return Boolean(value && typeof value === 'object' && typeof (value as { id?: unknown }).id === 'number')
+}
+
+function conflictValue(value: unknown) {
+  if (!value) return 'No data returned'
+  return JSON.stringify(value, null, 2)
+}
+
 async function ensurePdfBlob(blob: Blob) {
   const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer())
   const isPdfHeader =
@@ -105,6 +125,68 @@ function replaceExpandedDetailItem(
   return detail?.item?.id === item.id ? { ...details, [resourceKey]: { ...detail, item } } : details
 }
 
+function ConflictResolutionDialog({
+  busy,
+  conflict,
+  onCancel,
+  onForceOverwrite,
+  onUseLatest,
+}: Readonly<{
+  busy: boolean
+  conflict: ConflictState
+  onCancel: () => void
+  onForceOverwrite: () => void
+  onUseLatest: () => void
+}>) {
+  return (
+    <div className="modal-backdrop">
+      <dialog className="modal-dialog conflict-dialog" aria-modal="true" open>
+        <div className="modal-header">
+          <div>
+            <p className="kicker">Version conflict</p>
+            <h3>{resourceConfig[conflict.resourceKey].apiName} was changed</h3>
+          </div>
+          <button type="button" className="link-action modal-close" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+
+        <p className="conflict-message">{conflict.message}</p>
+        <dl className="conflict-meta">
+          <div>
+            <dt>Submitted version</dt>
+            <dd>{conflict.submittedVersion ?? '-'}</dd>
+          </div>
+          <div>
+            <dt>Current version</dt>
+            <dd>{conflict.currentVersion ?? conflict.currentState?.version ?? '-'}</dd>
+          </div>
+        </dl>
+
+        <div className="conflict-grid" aria-label="Conflict comparison">
+          <section className="conflict-snapshot">
+            <h4>Your submitted changes</h4>
+            <pre>{conflictValue(conflict.submittedState)}</pre>
+          </section>
+          <section className="conflict-snapshot">
+            <h4>Current saved record</h4>
+            <pre>{conflictValue(conflict.currentState)}</pre>
+          </section>
+        </div>
+
+        <div className="form-actions conflict-actions">
+          <button type="button" className="link-action" disabled={busy} onClick={onUseLatest}>
+            Use latest and edit again
+          </button>
+          <button type="button" className="primary-action" disabled={busy} onClick={onForceOverwrite}>
+            Overwrite saved record
+          </button>
+        </div>
+      </dialog>
+    </div>
+  )
+}
+
 function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceResourceKey>('contacts')
   const [resources, setResources] = useState(initialResources)
@@ -114,6 +196,7 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
   const [busyAction, setBusyAction] = useState('')
   const [error, setError] = useState('')
   const [formModal, setFormModal] = useState<FormModalState | null>(null)
+  const [conflictState, setConflictState] = useState<ConflictState | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState('')
 
@@ -209,6 +292,30 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     return backendApi.updateService(session, item.id, payload as ServiceUpdatePayload)
   }
 
+  const forceOverwriteResource = (resourceKey: ResourceKey, item: ResourceItem, payload: ResourcePayload) => {
+    if (resourceKey === 'suppliers')
+      return backendApi.forceOverwriteSupplier(session, item.id, payload as SupplierUpdatePayload)
+    if (resourceKey === 'contacts')
+      return backendApi.forceOverwriteContact(session, item.id, payload as ContactUpdatePayload)
+    if (resourceKey === 'contracts')
+      return backendApi.forceOverwriteContract(session, item.id, payload as ContractUpdatePayload)
+    return backendApi.forceOverwriteService(session, item.id, payload as ServiceUpdatePayload)
+  }
+
+  const applyUpdatedResource = (resourceKey: ResourceKey, updated: ResourceItem) => {
+    setResources((current) => {
+      if (resourceKey === 'contacts' && 'primary' in updated && updated.primary) {
+        return { ...current, contacts: updatePrimaryContacts(current.contacts, updated as Contact) }
+      }
+      return {
+        ...current,
+        [resourceKey]: replaceById(current[resourceKey], updated),
+      }
+    })
+    setSelected((current) => ({ ...current, [resourceKey]: updated }))
+    setExpandedDetails((current) => replaceExpandedDetailItem(current, resourceKey, updated))
+  }
+
   const deleteResource = (resourceKey: ResourceKey, item: ResourceItem) => {
     if (resourceKey === 'suppliers') return backendApi.deleteSupplier(session, item.id)
     if (resourceKey === 'contacts') return backendApi.deleteContact(session, item.id)
@@ -247,6 +354,26 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     })
   }
 
+  const buildConflictState = (
+    resourceKey: ResourceKey,
+    item: ResourceItem,
+    payload: ResourcePayload,
+    conflict: OptimisticLockConflictBody,
+    fallbackMessage: string,
+  ): ConflictState => {
+    const currentState = isResourceItem(conflict.currentState) ? conflict.currentState : undefined
+    return {
+      currentState,
+      currentVersion: conflict.currentVersion,
+      item,
+      message: conflict.message ?? fallbackMessage,
+      payload,
+      resourceKey,
+      submittedState: conflict.submittedState ?? payload,
+      submittedVersion: conflict.submittedVersion,
+    }
+  }
+
   const updateItem = (resourceKey: ResourceKey, event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const config = resourceConfig[resourceKey]
@@ -257,14 +384,18 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
     const payload = formPayload(event.currentTarget, config.fields, 'edit', item)
 
     runAction(`update-${resourceKey}-${item.id}`, async () => {
-      const updated = await updateResource(resourceKey, item, payload)
-      setResources((current) => ({
-        ...current,
-        [resourceKey]: replaceById(current[resourceKey], updated),
-      }))
-      setSelected((current) => ({ ...current, [resourceKey]: updated }))
-      setExpandedDetails((current) => replaceExpandedDetailItem(current, resourceKey, updated))
-      closeFormModal()
+      try {
+        const updated = await updateResource(resourceKey, item, payload)
+        applyUpdatedResource(resourceKey, updated)
+        closeFormModal()
+      } catch (err) {
+        if (isOptimisticLockConflictError(err)) {
+          setConflictState(buildConflictState(resourceKey, item, payload, err.body, err.message))
+          closeFormModal()
+          return
+        }
+        throw err
+      }
     })
   }
 
@@ -348,6 +479,30 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
       const pdfUrl = URL.createObjectURL(pdfBlob)
       globalThis.open(pdfUrl, '_blank', 'noopener,noreferrer')
       globalThis.setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000)
+    })
+  }
+
+  const useLatestConflictVersion = () => {
+    if (!conflictState) return
+    const conflict = conflictState
+
+    runAction(`conflict-refresh-${conflict.resourceKey}-${conflict.item.id}`, async () => {
+      const latest = conflict.currentState ?? (await getResource(conflict.resourceKey, conflict.item))
+      applyUpdatedResource(conflict.resourceKey, latest)
+      setFormModal({ mode: 'edit', resourceKey: conflict.resourceKey })
+      setConflictState(null)
+    })
+  }
+
+  const forceOverwriteConflict = () => {
+    if (!conflictState) return
+    const conflict = conflictState
+
+    runAction(`conflict-force-${conflict.resourceKey}-${conflict.item.id}`, async () => {
+      const overwritten = await forceOverwriteResource(conflict.resourceKey, conflict.item, conflict.payload)
+      applyUpdatedResource(conflict.resourceKey, overwritten)
+      setConflictState(null)
+      closeFormModal()
     })
   }
 
@@ -570,6 +725,15 @@ function Dashboard({ session, onSignOut }: Readonly<DashboardProps>) {
             onSubmit={(e) =>
               formModal.mode === 'edit' ? updateItem(formModal.resourceKey, e) : createItem(formModal.resourceKey, e)
             }
+          />
+        )}
+        {conflictState && (
+          <ConflictResolutionDialog
+            busy={busyAction.startsWith('conflict-')}
+            conflict={conflictState}
+            onCancel={() => setConflictState(null)}
+            onForceOverwrite={forceOverwriteConflict}
+            onUseLatest={useLatestConflictVersion}
           />
         )}
       </div>

@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { Dashboard } from './Dashboard'
-import { backendApi } from '../api/backendApi'
+import { BackendApiError, backendApi } from '../api/backendApi'
 
-vi.mock('../api/backendApi', () => ({
-  backendApi: {
+vi.mock('../api/backendApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/backendApi')>()
+  return {
+    ...actual,
+    backendApi: {
     createContact: vi.fn(),
     createContract: vi.fn(),
     createService: vi.fn(),
@@ -12,6 +15,10 @@ vi.mock('../api/backendApi', () => ({
     deleteContract: vi.fn(),
     deleteService: vi.fn(),
     deleteSupplier: vi.fn(),
+    forceOverwriteContact: vi.fn(),
+    forceOverwriteContract: vi.fn(),
+    forceOverwriteService: vi.fn(),
+    forceOverwriteSupplier: vi.fn(),
     getActiveSuppliersPdf: vi.fn(),
     getContact: vi.fn(),
     getContacts: vi.fn(),
@@ -30,7 +37,8 @@ vi.mock('../api/backendApi', () => ({
     updateService: vi.fn(),
     updateSupplier: vi.fn(),
   },
-}))
+  }
+})
 
 const session = { role: 'ADMIN', token: 'jwt-token', username: 'ada' }
 const api = vi.mocked(backendApi)
@@ -167,6 +175,75 @@ describe('Dashboard', () => {
       expect(screen.queryByText('Acme Updated')).not.toBeInTheDocument()
     })
     expect(api.deleteSupplier).toHaveBeenCalledWith(session, 1)
+  })
+
+  it('lets users force overwrite an optimistic locking conflict', async () => {
+    const conflictedPayload = {
+      currentState: { ...supplier, name: 'Acme Server', version: 5 },
+      currentVersion: 5,
+      message: 'Supplier was modified by another user',
+      submittedState: { email: 'ops@acme.test', name: 'Acme Local', phone: '555-0100', version: 4 },
+      submittedVersion: 4,
+    }
+    api.updateSupplier.mockRejectedValueOnce(
+      new BackendApiError(409, conflictedPayload, 'Supplier was modified by another user'),
+    )
+    api.forceOverwriteSupplier.mockResolvedValue({ ...supplier, name: 'Acme Local', version: 6 })
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByTitle('Edit')[0])
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Acme Local' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Update supplier' }))
+
+    expect(await screen.findByRole('heading', { name: 'Supplier was changed' })).toBeInTheDocument()
+    expect(screen.getByText('Supplier was modified by another user')).toBeInTheDocument()
+    expect(screen.getByText(/Acme Server/)).toBeInTheDocument()
+    expect(screen.getByText(/Acme Local/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Overwrite saved record' }))
+
+    await waitFor(() => {
+      expect(api.forceOverwriteSupplier).toHaveBeenCalledWith(session, 1, {
+        email: 'ops@acme.test',
+        name: 'Acme Local',
+        phone: '555-0100',
+        version: 4,
+      })
+    })
+    expect(await screen.findAllByText('Acme Local')).toHaveLength(2)
+  })
+
+  it('loads the current record after an optimistic locking conflict for another edit attempt', async () => {
+    api.updateSupplier.mockRejectedValueOnce(
+      new BackendApiError(
+        409,
+        {
+          currentState: { ...supplier, name: 'Acme Server', version: 5 },
+          currentVersion: 5,
+          message: 'Supplier was modified by another user',
+          submittedVersion: 4,
+        },
+        'Supplier was modified by another user',
+      ),
+    )
+
+    render(<Dashboard session={session} onSignOut={vi.fn()} />)
+
+    expect(await screen.findByText('Acme')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByTitle('Edit')[0])
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Acme Local' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Update supplier' }))
+
+    expect(await screen.findByRole('heading', { name: 'Supplier was changed' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Use latest and edit again' }))
+
+    expect(await screen.findByRole('heading', { name: 'Update supplier' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Name')).toHaveValue('Acme Server')
+    expect(api.forceOverwriteSupplier).not.toHaveBeenCalled()
   })
 
   it('shows the active suppliers PDF action for admins and opens the report', async () => {
