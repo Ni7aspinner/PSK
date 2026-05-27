@@ -280,11 +280,11 @@ function AuthScreen({ actions, heroMark, state }: Readonly<AuthScreenProps>) {
 
               <div className="auth-header-upgrade">
                 <div className="auth-logo-row">
-                  <span className="kicker" style={{ margin: 0 }}>
+                  <span className="kicker auth-mode-kicker">
                     {authMode === 'login' ? 'SECURE ENTRY PORTAL' : 'ACCOUNT CREATION'}
                   </span>
                 </div>
-                <h2 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
+                <h2 className="auth-mode-title">
                   {authMode === 'login' ? 'Sign in' : 'Register'}
                 </h2>
               </div>

@@ -87,9 +87,43 @@ describe('ResourceTable', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { name: 'C-001' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Linked services' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByTitle('Collapse details'))
     expect(closeDetails).toHaveBeenCalledWith('contracts')
+  })
+
+  it('opens expandable rows through the row click target', () => {
+    const row = {
+      contractNumber: 'C-002',
+      endDate: '2026-12-31',
+      id: 11,
+      servicesCount: 0,
+      startDate: '2026-01-01',
+      status: 'ACTIVE' as const,
+      supplierId: 1,
+      supplierName: 'Acme',
+      title: 'Maintenance Agreement',
+    }
+    const loadDetails = vi.fn()
+
+    render(
+      <ResourceTable
+        closeDetails={vi.fn()}
+        config={resourceConfig.contracts}
+        deleteItem={vi.fn()}
+        loadDetails={loadDetails}
+        openEditModal={vi.fn()}
+        openRelatedDetails={vi.fn()}
+        rows={[row]}
+        resourceKey="contracts"
+        setPrimaryContact={vi.fn()}
+        terminateContract={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('cell', { name: 'C-002' }))
+
+    expect(loadDetails).toHaveBeenCalledWith('contracts', row)
   })
 })

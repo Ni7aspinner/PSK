@@ -80,19 +80,14 @@ export type EnrichedService = Service & {
   supplierName: string
 }
 export type ResourceItem = Supplier | Contact | Contract | Service | EnrichedContact | EnrichedContract | EnrichedService
+export type WorkspaceResourceKey = Exclude<ResourceKey, 'suppliers'>
+export type ResourceCreateDefaults = Partial<Record<'contractId' | 'supplierId', string | number | boolean | null | { id: number }>>
 
 export type Resources = {
   suppliers: Supplier[]
   contacts: Contact[]
   contracts: Contract[]
   services: Service[]
-}
-
-export type RowsByKey = {
-  suppliers: Supplier[]
-  contacts: EnrichedContact[]
-  contracts: EnrichedContract[]
-  services: EnrichedService[]
 }
 
 export type ResourceDetail = {
@@ -106,7 +101,7 @@ export type ResourceDetail = {
 
 export type AuthPayload = { username: string; password: string }
 export type SupplierCreatePayload = { email?: string; name: string; phone?: string; registrationCode: string }
-export type SupplierUpdatePayload = { email?: string; name: string; phone?: string; version: number }
+export type SupplierUpdatePayload = Omit<SupplierCreatePayload, 'registrationCode'> & { version: number }
 export type ContactCreatePayload = {
   email?: string
   firstName: string
@@ -125,11 +120,8 @@ export type ContractCreatePayload = {
   supplierId: number
   title: string
 }
-export type ContractUpdatePayload = {
-  endDate: string
-  startDate: string
+export type ContractUpdatePayload = Omit<ContractCreatePayload, 'contractNumber' | 'status' | 'supplierId'> & {
   status: ContractStatus
-  title: string
   version: number
 }
 export type ServiceCreatePayload = {
@@ -139,14 +131,7 @@ export type ServiceCreatePayload = {
   name: string
   supplierId: number
 }
-export type ServiceUpdatePayload = {
-  active: boolean
-  contractId?: number | null
-  description?: string
-  name: string
-  supplierId: number
-  version: number
-}
+export type ServiceUpdatePayload = Omit<ServiceCreatePayload, 'active'> & { active: boolean; version: number }
 
 export type ResourcePayload =
   | SupplierCreatePayload

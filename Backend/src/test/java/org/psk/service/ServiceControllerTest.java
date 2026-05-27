@@ -45,7 +45,7 @@ class ServiceControllerTest {
     when(serviceManagementService.findAll()).thenReturn(List.of(dto));
 
     mockMvc
-        .perform(get("/api/services"))
+        .perform(get("/services"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].name").value("Hosting"))
         .andExpect(jsonPath("$[0].supplierId").value(10))
@@ -58,7 +58,7 @@ class ServiceControllerTest {
     when(serviceManagementService.findBySupplierId(10L)).thenReturn(List.of(dto));
 
     mockMvc
-        .perform(get("/api/suppliers/10/services"))
+        .perform(get("/suppliers/10/services"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(1))
         .andExpect(jsonPath("$[0].supplierId").value(10));
@@ -69,7 +69,7 @@ class ServiceControllerTest {
     when(serviceManagementService.findById(99L))
         .thenThrow(new ServiceNotFoundException("Not found"));
 
-    mockMvc.perform(get("/api/services/99")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/services/99")).andExpect(status().isNotFound());
   }
 
   @Test
@@ -77,7 +77,7 @@ class ServiceControllerTest {
     String body = "{\"name\":\" \",\"supplierId\":1}";
 
     mockMvc
-        .perform(post("/api/services").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(post("/services").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.fieldErrors").isArray());
   }
@@ -92,7 +92,7 @@ class ServiceControllerTest {
     when(serviceManagementService.create(any(CreateServiceRequest.class))).thenReturn(created);
 
     mockMvc
-        .perform(post("/api/services").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(post("/services").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(5))
         .andExpect(header().exists("Location"));
@@ -109,7 +109,7 @@ class ServiceControllerTest {
         .thenReturn(updated);
 
     mockMvc
-        .perform(put("/api/services/5").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(put("/services/5").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("Updated"))
         .andExpect(jsonPath("$.active").value(false));
@@ -126,7 +126,7 @@ class ServiceControllerTest {
         .thenReturn(updated);
 
     mockMvc
-        .perform(put("/api/services/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(put("/services/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("Forced"))
         .andExpect(jsonPath("$.version").value(3));
@@ -136,6 +136,6 @@ class ServiceControllerTest {
   void delete_notFound_returns404() throws Exception {
     doThrow(new ServiceNotFoundException("Not found")).when(serviceManagementService).delete(99L);
 
-    mockMvc.perform(delete("/api/services/99")).andExpect(status().isNotFound());
+    mockMvc.perform(delete("/services/99")).andExpect(status().isNotFound());
   }
 }

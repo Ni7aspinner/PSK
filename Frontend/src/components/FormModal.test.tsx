@@ -69,4 +69,20 @@ describe('FormModal', () => {
     expect(screen.queryByLabelText('Registration code')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Working...' })).toBeDisabled()
   })
+
+  it('does not stringify object default values into form controls', () => {
+    render(
+      <FormModal
+        busy={false}
+        config={resourceConfig.services}
+        defaultValues={{ supplierId: { id: 1 } }}
+        mode="create"
+        resources={{ suppliers: [{ id: 1, name: 'Acme', registrationCode: 'ACME-1' }] }}
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByDisplayValue('[object Object]')).not.toBeInTheDocument()
+  })
 })

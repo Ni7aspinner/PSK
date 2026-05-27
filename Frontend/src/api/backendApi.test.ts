@@ -15,7 +15,7 @@ describe('backendApi', () => {
     const result = await backendApi.createSupplier({ token: 'jwt-token' }, { name: 'Acme', registrationCode: 'ACME-1' })
 
     expect(result).toEqual({ id: 3, name: 'Acme', registrationCode: 'ACME-1' })
-    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/api/suppliers`, {
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/suppliers`, {
       body: JSON.stringify({ name: 'Acme', registrationCode: 'ACME-1' }),
       headers: {
         Authorization: 'Bearer jwt-token',
@@ -33,7 +33,7 @@ describe('backendApi', () => {
     } as unknown as Response)
 
     await expect(backendApi.deleteContract({ token: 'jwt-token' }, 5)).resolves.toBeNull()
-    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/api/contracts/5`, {
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/contracts/5`, {
       headers: {
         Authorization: 'Bearer jwt-token',
       },
@@ -97,12 +97,12 @@ describe('backendApi', () => {
       status: 'TERMINATED',
     })
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/api/suppliers/9/services`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/suppliers/9/services`, {
       headers: {
         Authorization: 'Bearer jwt-token',
       },
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/api/contracts/12/terminate`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/contracts/12/terminate`, {
       headers: {
         Authorization: 'Bearer jwt-token',
       },
@@ -131,12 +131,12 @@ describe('backendApi', () => {
       primary: true,
     })
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/api/suppliers/9/contacts`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/suppliers/9/contacts`, {
       headers: {
         Authorization: 'Bearer jwt-token',
       },
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/api/contacts/4/set-primary`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/contacts/4/set-primary`, {
       headers: {
         Authorization: 'Bearer jwt-token',
       },
@@ -158,7 +158,24 @@ describe('backendApi', () => {
       rows: [{ name: 'Acme', activeContracts: 1 }],
     })
 
-    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/api/reports/active-suppliers`, {
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/reports/active-suppliers`, {
+      headers: {
+        Authorization: 'Bearer jwt-token',
+      },
+    })
+  })
+
+  it('fetches the active suppliers pdf as a blob', async () => {
+    const blob = new Blob(['pdf'], { type: 'application/pdf' })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      blob: async () => blob,
+    } as Response)
+
+    await expect(backendApi.getActiveSuppliersPdf({ token: 'jwt-token' })).resolves.toBe(blob)
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/reports/active-suppliers/pdf`, {
       headers: {
         Authorization: 'Bearer jwt-token',
       },
@@ -220,39 +237,39 @@ describe('backendApi', () => {
     await backendApi.updateService(session, 7, { active: false, name: 'Helpdesk', supplierId: 2, version: 1 })
     await backendApi.deleteService(session, 7)
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/api/suppliers`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, `${API_BASE}/suppliers`, {
       headers: { Authorization: 'Bearer jwt-token' },
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/api/suppliers/7`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, `${API_BASE}/suppliers/7`, {
       headers: { Authorization: 'Bearer jwt-token' },
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(3, `${API_BASE}/api/suppliers/7`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `${API_BASE}/suppliers/7`, {
       body: JSON.stringify({ name: 'Acme', version: 1 }),
       headers: { Authorization: 'Bearer jwt-token', 'Content-Type': 'application/json' },
       method: 'PUT',
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(4, `${API_BASE}/api/suppliers/7`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(4, `${API_BASE}/suppliers/7`, {
       headers: { Authorization: 'Bearer jwt-token' },
       method: 'DELETE',
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(5, `${API_BASE}/api/contacts`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(5, `${API_BASE}/contacts`, {
       headers: { Authorization: 'Bearer jwt-token' },
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(6, `${API_BASE}/api/contacts/7`, {
+    expect(fetchMock).toHaveBeenNthCalledWith(6, `${API_BASE}/contacts/7`, {
       headers: { Authorization: 'Bearer jwt-token' },
     })
-    expect(fetchMock).toHaveBeenNthCalledWith(7, `${API_BASE}/api/contacts`, expect.objectContaining({ method: 'POST' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(8, `${API_BASE}/api/contacts/7`, expect.objectContaining({ method: 'PUT' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(9, `${API_BASE}/api/contacts/7`, expect.objectContaining({ method: 'DELETE' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(10, `${API_BASE}/api/contracts`, expect.any(Object))
-    expect(fetchMock).toHaveBeenNthCalledWith(11, `${API_BASE}/api/contracts/7`, expect.any(Object))
-    expect(fetchMock).toHaveBeenNthCalledWith(12, `${API_BASE}/api/contracts`, expect.objectContaining({ method: 'POST' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(13, `${API_BASE}/api/contracts/7`, expect.objectContaining({ method: 'PUT' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(14, `${API_BASE}/api/services`, expect.any(Object))
-    expect(fetchMock).toHaveBeenNthCalledWith(15, `${API_BASE}/api/services/7`, expect.any(Object))
-    expect(fetchMock).toHaveBeenNthCalledWith(16, `${API_BASE}/api/services`, expect.objectContaining({ method: 'POST' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(17, `${API_BASE}/api/services/7`, expect.objectContaining({ method: 'PUT' }))
-    expect(fetchMock).toHaveBeenNthCalledWith(18, `${API_BASE}/api/services/7`, expect.objectContaining({ method: 'DELETE' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(7, `${API_BASE}/contacts`, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(8, `${API_BASE}/contacts/7`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(9, `${API_BASE}/contacts/7`, expect.objectContaining({ method: 'DELETE' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(10, `${API_BASE}/contracts`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(11, `${API_BASE}/contracts/7`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(12, `${API_BASE}/contracts`, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(13, `${API_BASE}/contracts/7`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(14, `${API_BASE}/services`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(15, `${API_BASE}/services/7`, expect.any(Object))
+    expect(fetchMock).toHaveBeenNthCalledWith(16, `${API_BASE}/services`, expect.objectContaining({ method: 'POST' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(17, `${API_BASE}/services/7`, expect.objectContaining({ method: 'PUT' }))
+    expect(fetchMock).toHaveBeenNthCalledWith(18, `${API_BASE}/services/7`, expect.objectContaining({ method: 'DELETE' }))
   })
 
   it('uses backend message, backend error, and request fallback for failed responses', async () => {

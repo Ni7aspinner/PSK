@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.psk.audit.repository.AuditLogRepository;
+import org.psk.contact.ContactRepository;
+import org.psk.contract.ContractRepository;
+import org.psk.service.ServiceRepository;
 import org.psk.supplier.SupplierRepository;
 import org.psk.supplier.SupplierService;
 import org.psk.supplier.dto.CreateSupplierRequest;
@@ -20,11 +23,17 @@ class BusinessLogicAuditAspectDisabledTest {
 
   @Autowired private SupplierService supplierService;
   @Autowired private SupplierRepository supplierRepository;
+  @Autowired private ContractRepository contractRepository;
+  @Autowired private ServiceRepository serviceRepository;
+  @Autowired private ContactRepository contactRepository;
   @Autowired private AuditLogRepository auditLogRepository;
 
   @BeforeEach
   void setUp() {
     auditLogRepository.deleteAll();
+    serviceRepository.deleteAll();
+    contactRepository.deleteAll();
+    contractRepository.deleteAll();
     supplierRepository.deleteAll();
   }
 

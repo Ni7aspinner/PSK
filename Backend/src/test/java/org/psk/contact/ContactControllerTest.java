@@ -52,7 +52,7 @@ class ContactControllerTest {
     when(contactService.findAll()).thenReturn(List.of(dto));
 
     mockMvc
-        .perform(get("/api/contacts"))
+        .perform(get("/contacts"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].firstName").value("Alice"))
         .andExpect(jsonPath("$[0].primary").value(true))
@@ -65,7 +65,7 @@ class ContactControllerTest {
     when(contactService.findBySupplierId(10L)).thenReturn(List.of(dto));
 
     mockMvc
-        .perform(get("/api/suppliers/10/contacts"))
+        .perform(get("/suppliers/10/contacts"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value(1))
         .andExpect(jsonPath("$[0].supplierId").value(10));
@@ -78,7 +78,7 @@ class ContactControllerTest {
     when(contactService.findById(5L)).thenReturn(dto);
 
     mockMvc
-        .perform(get("/api/contacts/5"))
+        .perform(get("/contacts/5"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(5))
         .andExpect(jsonPath("$.firstName").value("Alice"));
@@ -88,7 +88,7 @@ class ContactControllerTest {
   void getById_notFound_returns404() throws Exception {
     when(contactService.findById(99L)).thenThrow(new ContactNotFoundException("Not found"));
 
-    mockMvc.perform(get("/api/contacts/99")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/contacts/99")).andExpect(status().isNotFound());
   }
 
   @Test
@@ -96,7 +96,7 @@ class ContactControllerTest {
     String body = "{\"firstName\":\" \",\"lastName\":\"Contact\",\"supplierId\":1}";
 
     mockMvc
-        .perform(post("/api/contacts").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(post("/contacts").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.fieldErrors").isArray());
   }
@@ -118,7 +118,7 @@ class ContactControllerTest {
     when(contactService.create(any(CreateContactRequest.class))).thenReturn(created);
 
     mockMvc
-        .perform(post("/api/contacts").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(post("/contacts").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.id").value(5))
         .andExpect(jsonPath("$.primary").value(true))
@@ -142,7 +142,7 @@ class ContactControllerTest {
     when(contactService.update(eq(5L), any(UpdateContactRequest.class))).thenReturn(updated);
 
     mockMvc
-        .perform(put("/api/contacts/5").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(put("/contacts/5").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.lastName").value("Updated"))
         .andExpect(jsonPath("$.primary").value(false));
@@ -167,7 +167,7 @@ class ContactControllerTest {
         .thenReturn(updated);
 
     mockMvc
-        .perform(put("/api/contacts/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
+        .perform(put("/contacts/5/force").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.lastName").value("Forced"))
         .andExpect(jsonPath("$.version").value(3));
@@ -180,7 +180,7 @@ class ContactControllerTest {
     when(contactService.setPrimary(5L)).thenReturn(primary);
 
     mockMvc
-        .perform(put("/api/contacts/5/set-primary"))
+        .perform(put("/contacts/5/set-primary"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(5))
         .andExpect(jsonPath("$.primary").value(true));
@@ -190,11 +190,11 @@ class ContactControllerTest {
   void delete_notFound_returns404() throws Exception {
     doThrow(new ContactNotFoundException("Not found")).when(contactService).delete(99L);
 
-    mockMvc.perform(delete("/api/contacts/99")).andExpect(status().isNotFound());
+    mockMvc.perform(delete("/contacts/99")).andExpect(status().isNotFound());
   }
 
   @Test
   void delete_existingContact_returns204() throws Exception {
-    mockMvc.perform(delete("/api/contacts/5")).andExpect(status().isNoContent());
+    mockMvc.perform(delete("/contacts/5")).andExpect(status().isNoContent());
   }
 }

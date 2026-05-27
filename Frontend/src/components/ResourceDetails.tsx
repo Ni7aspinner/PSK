@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
-import { resourceConfig, type ResourceDetail, type ResourceItem, type ResourceKey } from '../models/resourceConfig'
+import { type ResourceDetail, type ResourceItem, type ResourceKey } from '../models/resourceConfig'
 import { resourceLabel } from '../utils/dashboardUtils'
 
 type RelatedSelect = (resourceKey: ResourceKey, item: ResourceItem) => void
-type DetailProps = Readonly<{ detail: ResourceDetail; onRelatedSelect: RelatedSelect }>
+type DetailProps = Readonly<{
+  detail: ResourceDetail
+  onRelatedSelect: RelatedSelect
+}>
 type ResourceDetailsProps = Readonly<
   DetailProps & {
-    primary: ReactNode
     resourceKey: ResourceKey
   }
 >
@@ -23,17 +25,13 @@ type RelatedRecordButtonProps = Readonly<{
   resourceKey: ResourceKey
 }>
 
-export function ResourceDetails({ detail, onRelatedSelect, primary, resourceKey }: Readonly<ResourceDetailsProps>) {
-  const config = resourceConfig[resourceKey]
-
+export function ResourceDetails({
+  detail,
+  onRelatedSelect,
+  resourceKey,
+}: Readonly<ResourceDetailsProps>) {
   return (
     <section className="details-panel">
-      <div className="details-heading">
-        <div>
-          <p className="kicker">{config.singular} details</p>
-          <h3>{primary}</h3>
-        </div>
-      </div>
       {resourceKey === 'suppliers' && <SupplierDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
       {resourceKey === 'contacts' && <ContactDetails detail={detail} onRelatedSelect={onRelatedSelect} />}
       {resourceKey === 'contracts' && <ContractDetails detail={detail} onRelatedSelect={onRelatedSelect} />}

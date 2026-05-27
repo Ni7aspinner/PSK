@@ -55,7 +55,8 @@ describe('App', () => {
 
     expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
     expect(await screen.findByText('Acme')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Suppliers 1/ })).toBeInTheDocument()
+    expect(screen.getByText('Suppliers · 1')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create supplier' })).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem('psk-session') ?? 'null')).toEqual(session)
     expect(api.login).toHaveBeenCalledWith({ username: 'ada', password: 'secret' })
     expect(api.getSuppliers).toHaveBeenCalledWith(session)
@@ -88,6 +89,39 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
     expect(screen.getByText('Registered new-user. You can sign in now.')).toBeInTheDocument()
     expect(api.register).toHaveBeenCalledWith({ username: 'new-user', password: 'secret1' })
+  })
+
+  it('syncs login from another tab via storage event', async () => {
+    render(<App />)
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+
+    fireEvent(
+      window,
+      new StorageEvent('storage', {
+        key: 'psk-session',
+        newValue: JSON.stringify(session),
+      }),
+    )
+
+    expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
+  })
+
+  it('syncs logout from another tab via storage event', async () => {
+    localStorage.setItem('psk-session', JSON.stringify(session))
+    render(<App />)
+    expect(await screen.findByText('Signed in as ada · ADMIN')).toBeInTheDocument()
+
+    fireEvent(
+      window,
+      new StorageEvent('storage', {
+        key: 'psk-session',
+        newValue: null,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    })
   })
 
   it('loads the dashboard from a stored session and signs out', async () => {
