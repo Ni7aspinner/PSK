@@ -10,7 +10,7 @@ import org.psk.contract.dto.CreateContractRequest;
 import org.psk.contract.dto.UpdateContractRequest;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
-import org.psk.contract.exception.InvalidContractDateRangeException;
+import org.psk.contract.policy.ContractDatePolicy;
 import org.psk.service.ServiceRepository;
 import org.psk.supplier.Supplier;
 import org.psk.supplier.SupplierRepository;
@@ -25,6 +25,7 @@ public class ContractService {
   private final ContractRepository contractRepository;
   private final SupplierRepository supplierRepository;
   private final ServiceRepository serviceRepository;
+  private final ContractDatePolicy contractDatePolicy;
   private final ContractMapper contractMapper;
 
   public List<ContractDto> findAll() {
@@ -51,7 +52,7 @@ public class ContractService {
       throw new ContractNumberDuplicateException(
           "Contract already exists with number: " + req.getContractNumber());
     }
-    validateDateRange(req.getStartDate(), req.getEndDate());
+    contractDatePolicy.validate(req.getStartDate(), req.getEndDate());
     Supplier supplier = findSupplier(req.getSupplierId());
     return contractMapper.toDto(contractRepository.save(contractMapper.toEntity(req, supplier)));
   }
@@ -63,14 +64,14 @@ public class ContractService {
             .findById(id)
             .orElseThrow(() -> new ContractNotFoundException("Contract not found with id: " + id));
     ensureVersionMatches("Contract", id, existing.getVersion(), req.getVersion(), req);
-    validateDateRange(req.getStartDate(), req.getEndDate());
+    contractDatePolicy.validate(req.getStartDate(), req.getEndDate());
     contractMapper.updateEntity(existing, req);
     return contractMapper.toDto(contractRepository.save(existing));
   }
 
   @Transactional
   public ContractDto forceOverwrite(Long id, UpdateContractRequest req) {
-    validateDateRange(req.getStartDate(), req.getEndDate());
+    contractDatePolicy.validate(req.getStartDate(), req.getEndDate());
     Contract existing =
         contractRepository
             .findById(id)
@@ -111,12 +112,6 @@ public class ContractService {
   private void ensureSupplierExists(Long supplierId) {
     if (!supplierRepository.existsById(supplierId)) {
       throw new SupplierNotFoundException("Supplier not found with id: " + supplierId);
-    }
-  }
-
-  private void validateDateRange(java.time.LocalDate startDate, java.time.LocalDate endDate) {
-    if (startDate == null || endDate == null || !startDate.isBefore(endDate)) {
-      throw new InvalidContractDateRangeException("Contract start date must be before end date");
     }
   }
 

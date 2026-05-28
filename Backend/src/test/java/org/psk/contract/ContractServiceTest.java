@@ -22,6 +22,7 @@ import org.psk.contract.dto.UpdateContractRequest;
 import org.psk.contract.exception.ContractNotFoundException;
 import org.psk.contract.exception.ContractNumberDuplicateException;
 import org.psk.contract.exception.InvalidContractDateRangeException;
+import org.psk.contract.policy.StrictContractDatePolicy;
 import org.psk.service.Service;
 import org.psk.service.ServiceRepository;
 import org.psk.supplier.Supplier;
@@ -42,7 +43,11 @@ class ContractServiceTest {
   void setUp() {
     contractService =
         new ContractService(
-            contractRepository, supplierRepository, serviceRepository, contractMapper);
+            contractRepository,
+            supplierRepository,
+            serviceRepository,
+            new StrictContractDatePolicy(),
+            contractMapper);
   }
 
   @Test

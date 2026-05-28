@@ -23,13 +23,40 @@ type JsonPayload =
   | AuthPayload
   | SupplierCreatePayload
   | SupplierUpdatePayload
+  | (SupplierUpdatePayload & { forceOverwrite: true })
   | ContactCreatePayload
   | ContactUpdatePayload
+  | (ContactUpdatePayload & { forceOverwrite: true })
   | ContractCreatePayload
   | ContractUpdatePayload
+  | (ContractUpdatePayload & { forceOverwrite: true })
   | ServiceCreatePayload
   | ServiceUpdatePayload
-type ErrorBody = { message?: string; error?: string; fieldErrors?: Array<{ field: string; message: string }> }
+  | (ServiceUpdatePayload & { forceOverwrite: true })
+type ErrorBody = {
+  message?: string
+  error?: string
+  fieldErrors?: Array<{ field: string; message: string }>
+}
+export type OptimisticLockConflictBody = ErrorBody & {
+  currentState?: unknown
+  currentVersion?: number
+  entityId?: number
+  entityType?: string
+  submittedState?: unknown
+  submittedVersion?: number
+}
+
+export class BackendApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'BackendApiError'
+  }
+}
 
 const isErrorBody = (body: unknown): body is ErrorBody => Boolean(body) && typeof body === 'object'
 
@@ -46,6 +73,17 @@ function extractErrorMessage(body: unknown, fallback: string) {
 }
 
 const withJsonBody = (method: string, payload: JsonPayload): RequestInit => ({ method, body: JSON.stringify(payload) })
+
+export function isOptimisticLockConflictError(
+  error: unknown,
+): error is BackendApiError & { body: OptimisticLockConflictBody } {
+  return (
+    error instanceof BackendApiError &&
+    error.status === 409 &&
+    isErrorBody(error.body) &&
+    ('currentState' in error.body || 'submittedState' in error.body)
+  )
+}
 
 async function request<T>(
   path: string,
@@ -70,7 +108,7 @@ async function request<T>(
 
   if (!response.ok) {
     const fallbackMessage = fallback?.(response.status) ?? `Request failed: ${response.status}`
-    throw new Error(extractErrorMessage(body, fallbackMessage))
+    throw new BackendApiError(response.status, body, extractErrorMessage(body, fallbackMessage))
   }
 
   return body
@@ -85,7 +123,7 @@ async function requestBlob(path: string, session: Session) {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
-    throw new Error(extractErrorMessage(body, `Request failed: ${response.status}`))
+    throw new BackendApiError(response.status, body, extractErrorMessage(body, `Request failed: ${response.status}`))
   }
 
   return response.blob()
@@ -98,6 +136,8 @@ const backendApi = {
     request<Supplier>('/suppliers', session, withJsonBody('POST', payload)),
   updateSupplier: (session: Session, id: number, payload: SupplierUpdatePayload) =>
     request<Supplier>(`/suppliers/${id}`, session, withJsonBody('PUT', payload)),
+  forceOverwriteSupplier: (session: Session, id: number, payload: SupplierUpdatePayload) =>
+    request<Supplier>(`/suppliers/${id}/force`, session, withJsonBody('PUT', { ...payload, forceOverwrite: true })),
   deleteSupplier: (session: Session, id: number) =>
     request<null>(`/suppliers/${id}`, session, { method: 'DELETE' }),
   getContacts: (session: Session) => request<Contact[]>('/contacts', session),
@@ -106,6 +146,8 @@ const backendApi = {
     request<Contact>('/contacts', session, withJsonBody('POST', payload)),
   updateContact: (session: Session, id: number, payload: ContactUpdatePayload) =>
     request<Contact>(`/contacts/${id}`, session, withJsonBody('PUT', payload)),
+  forceOverwriteContact: (session: Session, id: number, payload: ContactUpdatePayload) =>
+    request<Contact>(`/contacts/${id}/force`, session, withJsonBody('PUT', { ...payload, forceOverwrite: true })),
   deleteContact: (session: Session, id: number) => request<null>(`/contacts/${id}`, session, { method: 'DELETE' }),
   getContracts: (session: Session) => request<Contract[]>('/contracts', session),
   getContract: (session: Session, id: number) => request<Contract>(`/contracts/${id}`, session),
@@ -113,6 +155,8 @@ const backendApi = {
     request<Contract>('/contracts', session, withJsonBody('POST', payload)),
   updateContract: (session: Session, id: number, payload: ContractUpdatePayload) =>
     request<Contract>(`/contracts/${id}`, session, withJsonBody('PUT', payload)),
+  forceOverwriteContract: (session: Session, id: number, payload: ContractUpdatePayload) =>
+    request<Contract>(`/contracts/${id}/force`, session, withJsonBody('PUT', { ...payload, forceOverwrite: true })),
   deleteContract: (session: Session, id: number) =>
     request<null>(`/contracts/${id}`, session, { method: 'DELETE' }),
   getServices: (session: Session) => request<Service[]>('/services', session),
@@ -121,6 +165,8 @@ const backendApi = {
     request<Service>('/services', session, withJsonBody('POST', payload)),
   updateService: (session: Session, id: number, payload: ServiceUpdatePayload) =>
     request<Service>(`/services/${id}`, session, withJsonBody('PUT', payload)),
+  forceOverwriteService: (session: Session, id: number, payload: ServiceUpdatePayload) =>
+    request<Service>(`/services/${id}/force`, session, withJsonBody('PUT', { ...payload, forceOverwrite: true })),
   deleteService: (session: Session, id: number) => request<null>(`/services/${id}`, session, { method: 'DELETE' }),
   login: (payload: AuthPayload) =>
     request<Session>('/auth/login', null, withJsonBody('POST', payload), () => 'Invalid credentials.'),
