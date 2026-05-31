@@ -38,8 +38,7 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth
-                    .dispatcherTypeMatchers(DispatcherType.ASYNC)
+                auth.dispatcherTypeMatchers(DispatcherType.ASYNC)
                     .permitAll()
                     .requestMatchers("/auth/**")
                     .permitAll()
