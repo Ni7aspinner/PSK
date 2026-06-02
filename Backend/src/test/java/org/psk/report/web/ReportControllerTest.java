@@ -54,7 +54,7 @@ class ReportControllerTest {
 
     MvcResult result =
         mockMvc
-            .perform(get("/reports/active-suppliers").with(user("report-user").roles("USER")))
+            .perform(get("/reports/active-suppliers").with(user("report-user").roles("ADMIN")))
             .andExpect(request().asyncStarted())
             .andReturn();
 
